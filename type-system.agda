@@ -14,7 +14,7 @@ succ a + b = succ (a + b)
 -- Language types
 data Type : Set where
   Bool   : Type
-  Int    : Type
+  Nat    : Type
   Tarrow : Type → Type → Type
 
 -- Language terms
@@ -83,8 +83,8 @@ data EnvContains : ℕ → Type → Env → Set where
 data HasType : Env → Term → Type → Set where
   t-true  : (env : Env) → HasType env true Bool
   t-false : (env : Env) → HasType env false Bool
-  t-num   : (env : Env) (n : ℕ) → HasType env (num n) Int
-  t-sum   : (env : Env) (n1 n2 : Term) (p1 : HasType env n1 Int) (p2 : HasType env n2 Int) → HasType env (plus n1 n2) Int
+  t-num   : (env : Env) (n : ℕ) → HasType env (num n) Nat
+  t-sum   : (env : Env) (n1 n2 : Term) (p1 : HasType env n1 Nat) (p2 : HasType env n2 Nat) → HasType env (plus n1 n2) Nat
   t-if    : (env : Env) (e1 e2 e3 : Term) (t : Type) (p1 : HasType env e1 Bool) (p2 : HasType env e2 t) (p3 : HasType env e3 t) → HasType env (if e1 e2 e3) t
   t-app   : (env : Env) (e1 e2 : Term) (t1 t2 : Type) (p1 : HasType env e1 (Tarrow t1 t2)) (p2 : HasType env e2 t1) → HasType env (app e1 e2) t2
   t-fun   : (env : Env) (x : ℕ) (t1 t2 : Type) (e1 : Term) (p : HasType (env-add x t1 env) e1 t2) → HasType env (fun x t1 e1) (Tarrow t1 t2)
@@ -130,59 +130,69 @@ data EvalTo : Term → Term → Set where
 -- Evaluation in multiple steps
 -- reflexive and transitive closure
 data EvalTo* : Term → Term → Set where
-  e-refl : (e1 : Term) → EvalTo* e1 e1                                            -- reflexivity
+  e-refl : (e1 : Term) → EvalTo* e1 e1                                          -- reflexivity
   e-trans : (e1 e2 e3 : Term) → EvalTo* e1 e2 → EvalTo* e2 e3 → EvalTo* e1 e3   -- transitivity
 
 
--- invertion lemma for type bool 
+-- invertion lemma for bool terms 
 lemma-inversion-true : (env : Env) (t : Type) → HasType env true t → t ≡ Bool
 lemma-inversion-true env Bool (t-true env) = refl Bool
 
 lemma-inversion-false : (env : Env) (t : Type) → HasType env false t → t ≡ Bool
 lemma-inversion-false env Bool (t-false env) = refl Bool
 
--- invertion lemma for type nat 
-lemma-inversion-nat : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → t ≡ Int
-lemma-inversion-nat Γ m1 m2 Int (t-sum Γ m1 m2 p1 p2) = refl Int
+-- invertion lemma for sum term 
+lemma-inversion-nat : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → t ≡ Nat
+lemma-inversion-nat Γ m1 m2 Nat (t-sum Γ m1 m2 p1 p2) = refl Nat
 
-lemma-inversion-nat-m1 : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → HasType Γ m1 Int
-lemma-inversion-nat-m1 Γ m1 m2 Int (t-sum Γ m1 m2 p1 p2) = p1
+lemma-inversion-nat-m1 : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → HasType Γ m1 Nat
+lemma-inversion-nat-m1 Γ m1 m2 Nat (t-sum Γ m1 m2 p1 p2) = p1
 
-lemma-inversion-nat-m2 : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → HasType Γ m2 Int
-lemma-inversion-nat-m2 Γ m1 m2 Int (t-sum Γ m1 m2 p1 p2) = p2
+lemma-inversion-nat-m2 : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (plus m1 m2) t → HasType Γ m2 Nat
+lemma-inversion-nat-m2 Γ m1 m2 Nat (t-sum Γ m1 m2 p1 p2) = p2
+
+-- invertion lemma for if then else term
+lemma-inversion-if-e1 : (Γ : Env) (e1 e2 e3 : Term) (t : Type) → HasType Γ (if e1 e2 e3) t → HasType Γ e1 Bool
+lemma-inversion-if-e1 env e1 e2 e3 t (t-if env e1 e2 e3 t p1 p2 p3) = p1
+
+lemma-inversion-if-e2 : (Γ : Env) (e1 e2 e3 : Term) (t : Type) → HasType Γ (if e1 e2 e3) t → HasType Γ e2 t
+lemma-inversion-if-e2 env e1 e2 e3 t (t-if env e1 e2 e3 t p1 p2 p3) = p2
+
+lemma-inversion-if-e3 : (Γ : Env) (e1 e2 e3 : Term) (t : Type) → HasType Γ (if e1 e2 e3) t → HasType Γ e3 t
+lemma-inversion-if-e3 env e1 e2 e3 t (t-if env e1 e2 e3 t p1 p2 p3) = p3
+
+-- invertion lemma for variable term
+lemma-invertion-var : (Γ : Env) (x : ℕ) (t : Type) → HasType Γ (var x) t → EnvContains x t Γ
+lemma-invertion-var env x t (t-var env x t p) = p     -- p is the proof that "env" contains "x"
+
+-- For the inversion lemma of application and function terms I need the existential quantifier.
+-- I need to be able to say that exists something.
 
 
 
 
 
-
-
-
-ex : HasType [] (if true (num (succ zero)) (num zero)) Int
-ex = t-if [] true (num (succ zero)) (num zero) Int (t-true [])
+-- some test examples
+ex : HasType [] (if true (num (succ zero)) (num zero)) Nat
+ex = t-if [] true (num (succ zero)) (num zero) Nat (t-true [])
           (t-num [] (succ zero)) (t-num [] zero) 
   
-ex' : HasType [] (plus (num (succ (succ zero))) (num zero)) Int
+ex' : HasType [] (plus (num (succ (succ zero))) (num zero)) Nat
 ex' = t-sum [] (num (succ (succ zero))) (num zero)
         (t-num [] (succ (succ zero))) (t-num [] zero)
 
--- check if the environment contains the variable bouded to that type
-ex'' : EnvContains zero Int (env-add zero Int []) 
-ex'' = m-first zero Int []
+ex'' : EnvContains zero Nat (env-add zero Nat []) 
+ex'' = m-first zero Nat []
 
-ex''' : EnvContains zero Int (env-add zero Int (env-add (succ zero) Int []))
-ex''' = m-first zero Int (env-add (succ zero) Int [])
+ex''' : EnvContains zero Nat (env-add zero Nat (env-add (succ zero) Nat []))
+ex''' = m-first zero Nat (env-add (succ zero) Nat [])
 
-ex'''' : EnvContains (succ zero) Bool (env-add zero Int (env-add (succ zero) Bool []))
-ex'''' = m-tail (succ zero) zero Bool Int (env-add (succ zero) Bool [])
+ex'''' : EnvContains (succ zero) Bool (env-add zero Nat (env-add (succ zero) Bool []))
+ex'''' = m-tail (succ zero) zero Bool Nat (env-add (succ zero) Bool [])
            (m-first (succ zero) Bool []) 
 
 ex5 : EvalTo (if true (num (succ zero)) (num zero)) (num (succ zero))
 ex5 = e-if-true (num (succ zero)) (num zero)
-
-
-ex6 : EvalTo* (if true (plus (num (succ zero)) (num (succ zero))) (num zero)) (num (succ (succ zero)))
-ex6 = {!e-trans!}
 
 ex7 : in-list zero (zero ∷ [])
 ex7 = in-head zero []
