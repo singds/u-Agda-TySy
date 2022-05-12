@@ -137,6 +137,20 @@ data Value : Term → Set where
   v-num : (n : ℕ) → Value (num n)
   v-fun : (x : ℕ) (t : Type) (e : Term) →  Value (fun x t e)
 
+NotValue : Term → Set
+NotValue m = ((Value m) → ⊥)
+
+-- Given a term returns a proof that this term is a value or a proof that this
+-- term is not a value
+is-value : (m : Term) → Value m ⊎ NotValue m
+is-value true = left v-true
+is-value false = left v-false
+is-value (num x) = left (v-num x)
+is-value (var x) = right (λ ())
+is-value (plus m m₁) = right (λ ())
+is-value (if m m₁ m₂) = right (λ ())
+is-value (app m m₁) = right (λ ())
+is-value (fun x t m) = left (v-fun x t m)
 
 -- Substitution
 -- occurences of the variable x are substituted with the term m in term t, producing a new term  
@@ -233,6 +247,18 @@ lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} (m : Term) → Value m → (HasTyp
           ∃ ℕ (λ x → (∃ Term (λ m1 → m ≡ (fun x t1 m1))))
 lemma-canon-arrow (fun x t1 e1) pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e1 (refl (fun x t1 e1)))
 
+
+-- PROGRESS THEOREM
+progress : (m : Term) (t : Type) → HasType [] m t → (Value m) ⊎ (∃ Term (λ m' → EvalTo m m'))
+progress true Bool (t-true [])                      = left v-true
+progress false Bool (t-false [])                    = left v-false
+progress (num n) Nat (t-num [] n)                   = left (v-num n)
+progress (plus n1 n2) Nat (t-sum [] n1 n2 p1 p2) with is-value n1
+... | right p = {!!} -- n1 is not a value
+... | left p = {!   !}
+progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t p p₁ p₂) = {!   !}
+progress (app e1 e2) t (t-app [] e1 e2 t1 t p p₁) = {!   !}
+progress (fun x t1 e1) .(Tarrow t1 t2) (t-fun [] x t1 t2 e1 p) = {!   !}
 
 
 -- some test examples
