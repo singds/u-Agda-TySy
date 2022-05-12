@@ -11,6 +11,15 @@ data _⊎_ (A B : Set) : Set where
   left : A → A ⊎ B
   right : B → A ⊎ B
 
+-- existential quantifier
+-- B is a set that is dependent on A
+data ∃ (A : Set) (B : A → Set) : Set where
+  exists : (a : A) (b : B a) → ∃ A B
+
+-- A holds and B holds
+-- there must be a proof of A and a proof of B
+data _&_ (A : Set) (B : Set) : Set where
+  and : (a : A) (b : B) → A & B
 
 data ℕ : Set where
   zero : ℕ
@@ -170,6 +179,7 @@ data EvalTo* : Term → Term → Set where
   e-trans : (e1 e2 e3 : Term) → EvalTo* e1 e2 → EvalTo* e2 e3 → EvalTo* e1 e3   -- transitivity
 
 
+-- INVERTION LEMMAS
 -- invertion lemma for bool terms 
 lemma-inversion-true : (env : Env) (t : Type) → HasType env true t → t ≡ Bool
 lemma-inversion-true env Bool (t-true env) = refl Bool
@@ -201,13 +211,28 @@ lemma-inversion-if-e3 env e1 e2 e3 t (t-if env e1 e2 e3 t p1 p2 p3) = p3
 lemma-invertion-var : (Γ : Env) (x : ℕ) (t : Type) → HasType Γ (var x) t → EnvContains x t Γ
 lemma-invertion-var env x t (t-var env x t p) = p     -- p is the proof that "env" contains "x"
 
--- For the inversion lemma of application and function terms I need the existential quantifier.
--- I need to be able to say that exists something.
--- lemma-invertion-app : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (app m1 m2) t → {!   !}
+lemma-invertion-app : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (app m1 m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
+lemma-invertion-app Γ m1 m2 t2 (t-app Γ m1 m2 t1 t2 p1 p2) = exists t1 (and p1 p2)
 
--- B is a set that is dependent on A
-data ∃ (A : Set) (B : A → Set) : Set where
-  exists : (a : A) (b : B a) → ∃ A B
+lemma-invertion-fun : (Γ : Env) (m : Term) (x : ℕ) (t1 t : Type) → HasType Γ (fun x t1 m) t → ∃ Type (λ t2 → (t ≡ (Tarrow t1 t2)) & HasType (env-add x t1 Γ) m t2)
+lemma-invertion-fun Γ m x t1 (Tarrow t1 t2) (t-fun Γ x t1 t2 m p) = exists t2 (and (refl (Tarrow t1 t2)) p)
+
+
+-- CANONICAL FORMS LEMMAS
+-- if v is a value of type Bool then v is ewither true or false
+lemma-canon-bool : {Γ : Env} (m : Term) → Value m → (HasType Γ m Bool) →
+          (m ≡ true) ⊎ (m ≡ false)
+lemma-canon-bool true pv (t-true Γ) = left (refl true)
+lemma-canon-bool false pv (t-false Γ) = right (refl false)
+
+lemma-canon-nat : {Γ : Env} (m : Term) → Value m → (HasType Γ m Nat) →
+          ∃ ℕ (λ n → m ≡ num n)
+lemma-canon-nat (num n) pv (t-num Γ n) = exists n (refl (num n))
+
+lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} (m : Term) → Value m → (HasType Γ m (Tarrow t1 t2)) →
+          ∃ ℕ (λ x → (∃ Term (λ m1 → m ≡ (fun x t1 m1))))
+lemma-canon-arrow (fun x t1 e1) pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e1 (refl (fun x t1 e1)))
+
 
 
 -- some test examples
