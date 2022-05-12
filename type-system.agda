@@ -1,11 +1,40 @@
 
+data ⊥ : Set where
 
 data _≡_ {A : Set} : A → A → Set where
   refl : (a : A) → a ≡ a
 
+_≢_ : {A : Set} → A → A → Set
+x ≢ y = ((x ≡ y) → ⊥)
+
+data _⊎_ (A B : Set) : Set where
+  left : A → A ⊎ B
+  right : B → A ⊎ B
+
+
 data ℕ : Set where
   zero : ℕ
   succ : ℕ → ℕ
+
+-- Congruence
+cong : {A B : Set} {x y : A} → (f : A → B) → (x ≡ y) → (f x ≡ f y)
+cong f (refl a) = refl (f a)
+
+-- If the successors of two numbers are equals, then the two numbers are equal
+-- This can't be generalized right ???
+succ-eq-pred-eq : {x y : ℕ} → succ x ≡ succ y → x ≡ y
+succ-eq-pred-eq (refl (succ x)) = refl x
+
+-- Comparator for natual numbers
+-- Given two numbers it provides either a proof that those number are equals or
+-- a proof that those numbers are not equal.
+comp-ℕ : (x : ℕ) → (y : ℕ) → ((x ≡ y) ⊎ (x ≢ y))
+comp-ℕ zero zero = left (refl zero)
+comp-ℕ zero (succ y) = right (λ ())
+comp-ℕ (succ x) zero = right (λ ())
+comp-ℕ (succ x) (succ y) with comp-ℕ x y
+... | left p  = left (cong succ p)
+... | right p = right λ pSuccEq → p (succ-eq-pred-eq pSuccEq)
 
 _+_ : ℕ → ℕ → ℕ
 zero + b   = b
@@ -19,14 +48,14 @@ data Type : Set where
 
 -- Language terms
 data Term : Set where
-  true  : Term                          
+  true  : Term
   false : Term
   num   : ℕ → Term                    -- number
-  var   : ℕ → Term                     -- variable
+  var   : ℕ → Term                    -- variable
   plus  : Term → Term → Term          -- sum between natural numbers
-  if    : Term → Term → Term → Term  -- if e1 then e1 else e3
+  if    : Term → Term → Term → Term   -- if e1 then e1 else e3
   app   : Term → Term → Term          -- function application
-  fun   : ℕ → Type → Term → Term     -- labda abstraction
+  fun   : ℕ → Type → Term → Term      -- labda abstraction
 
 
 data List {A : Set} : Set where
@@ -40,10 +69,12 @@ _++_ : {A : Set} → List {A} → List {A} → List {A}
 (x ∷ l1) ++ l2 = x ∷ (l1 ++ l2)
 
 
--- Remove the given element from the list
-rem : {A : Set} → List {A} → (x : A) → List {A}
-rem [] x = []
-rem (x ∷ l) y = {!!}
+-- Remove the given element from a list of integers
+rem-ℕ : List {ℕ} → (x : ℕ) → List {ℕ}
+rem-ℕ [] x = []
+rem-ℕ (x ∷ l) y with comp-ℕ x y
+... | left p = rem-ℕ l y             -- x equals y
+... | right p = x ∷ (rem-ℕ l y)      -- x not equals y
 
 
 -- Proposition: the element x is in the list
@@ -61,7 +92,7 @@ fv (var x)       = x ∷ []
 fv (plus m1 m2)  = (fv m1) ++ (fv m2)
 fv (if e1 e2 e3) = ((fv e1) ++ (fv e2)) ++ (fv e3)
 fv (app e1 e2)   = (fv e1) ++ (fv e2)
-fv (fun x t e)   = rem (fv e) x 
+fv (fun x t e)   = rem-ℕ (fv e) x 
 
 
 -- The type environment
@@ -77,7 +108,7 @@ data EnvContains : ℕ → Type → Env → Set where
   m-first : (n : ℕ) (t : Type) (env : Env) → EnvContains n t (env-add n t env)
   m-tail  : (n n₁ : ℕ) (t t₁ : Type) (env : Env) → EnvContains n t (env) → EnvContains n t (env-add n₁ t₁ env)
 
--- evaluation rules
+-- Typing rules
 -- HasType is the set that contains the proofs that the term M has the type T in the environment E
 --             E      M       T        E = environment   M = term   T = type
 data HasType : Env → Term → Type → Set where
@@ -101,15 +132,20 @@ data Value : Term → Set where
 -- Substitution
 -- occurences of the variable x are substituted with the term m in term t, producing a new term  
 subst : ℕ → Term → Term → Term
-subst x m true = true
-subst x m false = false
-subst x m (num n) = num n
-subst x m (var y) = {!!} -- here I have to split the two cases, when x = x₁, and when x ≠ x₁
-subst x m (plus e1 e2) = plus (subst x m e1) (subst x m e2)
+subst x m true          = true
+subst x m false         = false
+subst x m (num n)       = num n
+subst x m (var y) with comp-ℕ x y
+... | left p = m         -- case x equals y
+... | right p = var y    -- case x not equals y
+subst x m (plus e1 e2)  = plus (subst x m e1) (subst x m e2)
 subst x m (if e1 e2 e3) = if (subst x m e1) (subst x m e2) (subst x m e3)
-subst x m (app e1 e2) = app (subst x m e1) (subst x m e2)
-subst x m (fun y t e) = {!!}                         -- y not in fv(e) ???
-
+subst x m (app e1 e2)   = app (subst x m e1) (subst x m e2)
+subst x m (fun y t e)   = fun y t (subst x m e) -- ???
+-- y should not appear in fv(e) ???
+-- the substitution in this case should not be defined.
+-- we define it anyway, we force this to not happen in the typing rules
+-- here we have to deal with alpha equivalence
 
 
 -- Evaluation in a single step
@@ -167,9 +203,11 @@ lemma-invertion-var env x t (t-var env x t p) = p     -- p is the proof that "en
 
 -- For the inversion lemma of application and function terms I need the existential quantifier.
 -- I need to be able to say that exists something.
+-- lemma-invertion-app : (Γ : Env) (m1 m2 : Term) (t : Type) → HasType Γ (app m1 m2) t → {!   !}
 
-
-
+-- B is a set that is dependent on A
+data ∃ (A : Set) (B : A → Set) : Set where
+  exists : (a : A) (b : B a) → ∃ A B
 
 
 -- some test examples
@@ -204,4 +242,7 @@ ex9 : in-list zero ((succ (succ zero)) ∷ ((succ zero) ∷ (zero ∷ [])))
 ex9 = in-tail zero (succ (succ zero)) (succ zero ∷ (zero ∷ []))
         (in-tail zero (succ zero) (zero ∷ []) (in-head zero []))
 
+
+ex-exists : ∃ ℕ (λ x → (succ x) ≡ (succ (succ zero)))
+ex-exists = exists (succ zero) (refl (succ (succ zero)))
 
