@@ -4,17 +4,29 @@ data ⊥ : Set where
 data _≡_ {A : Set} : A → A → Set where
   refl : (a : A) → a ≡ a
 
+{-# BUILTIN EQUALITY _≡_ #-}
+
 _≢_ : {A : Set} → A → A → Set
 x ≢ y = ((x ≡ y) → ⊥)
+
 
 data _⊎_ (A B : Set) : Set where
   left : A → A ⊎ B
   right : B → A ⊎ B
 
+
 -- existential quantifier
 -- B is a set that is dependent on A
 data ∃ (A : Set) (B : A → Set) : Set where
   exists : (a : A) (b : B a) → ∃ A B
+
+exists-l : {A : Set} {B : A → Set} → ∃ A B → A
+exists-l (exists a b) = a
+
+-- exists-r : {A : Set} {a : A} {B : A → Set} → ∃ A B → B a
+-- exists-r (exists a b) = b
+
+
 
 -- A holds and B holds
 -- there must be a proof of A and a proof of B
@@ -170,7 +182,6 @@ subst x m (fun y t e)   = fun y t (subst x m e) -- ???
 -- we define it anyway, we force this to not happen in the typing rules
 -- here we have to deal with alpha equivalence
 
-
 -- Evaluation in a single step
 data EvalTo : Term → Term → Set where
   e-sum-l    : (m1 m1' m2 : Term) (pl : EvalTo m1 m1') → EvalTo (plus m1 m2) (plus m1' m2)
@@ -185,6 +196,8 @@ data EvalTo : Term → Term → Set where
   e-app1     : (m1 m1' m2 : Term) (p1 : EvalTo m1 m1') → EvalTo (app m1 m2) (app m1' m2)
   e-app2     : (v1 m2 m2' : Term) (p1 : Value v1) (p1 : EvalTo m2 m2') → EvalTo (app v1 m2) (app v1 m2')
 
+ev-m' : {m m' : Term} → EvalTo m m' → Term
+ev-m' {m} {m'} _ = m'
 
 -- Evaluation in multiple steps
 -- reflexive and transitive closure
@@ -248,17 +261,72 @@ lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} (m : Term) → Value m → (HasTyp
 lemma-canon-arrow (fun x t1 e1) pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e1 (refl (fun x t1 e1)))
 
 
+-- why can't i prove this ???
+-- magic : {A B : Set} → A ⊎ B → (A → ⊥) → B
+-- magic (right b) p2 = b
+
+
 -- PROGRESS THEOREM
 progress : (m : Term) (t : Type) → HasType [] m t → (Value m) ⊎ (∃ Term (λ m' → EvalTo m m'))
 progress true Bool (t-true [])                      = left v-true
 progress false Bool (t-false [])                    = left v-false
 progress (num n) Nat (t-num [] n)                   = left (v-num n)
-progress (plus n1 n2) Nat (t-sum [] n1 n2 p1 p2) with is-value n1
-... | right p = {!!} -- n1 is not a value
-... | left p = {!   !}
+progress (plus n1 n2) Nat (t-sum [] n1 n2 p1 p2) with is-value n1 | is-value n2
+... | right n1NotValue | _ = {!   !} -- n1 is not a value
+    where
+
+    n1HasTypeNat = lemma-inversion-nat-m1 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
+    n1EvalOrValue = progress n1 Nat n1HasTypeNat
+
+... | left n1Value | right n2NotValue = {!   !} where
+
+    n2HasTypeNat = lemma-inversion-nat-m2 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
+    n2EvalTo = progress n2 Nat n2HasTypeNat
+
+... | left n1Value | left n2Value = right evTo
+    where
+
+    n1HasTypeNat = lemma-inversion-nat-m1 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
+    n2HasTypeNat = lemma-inversion-nat-m2 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
+
+    -- I prooved that n1 ≡ num x1
+    -- I prooved that n2 ≡ num x2
+    -- Agda wonts a proof that ∃ m' such that (plus n1 n2) evaluates to m'
+    -- I can easily produce a proof that ∃ m' such that (plus (num x1) (num x2)) m'
+    -- So I rewrite the goal using the equality I have
+    -- With rewriting Agda understands that every type dependent on n1 is
+    -- definitinally equivalent to the same type where n1 is replaced with (num x1)
+    n1≡num = lemma-canon-nat n1 n1Value n1HasTypeNat
+    n2≡num = lemma-canon-nat n2 n2Value n2HasTypeNat
+
+    get-evTo : (n1 n2 : Term) → (∃ ℕ (λ x → (n1 ≡ (num x)))) → (∃ ℕ (λ x → (n2 ≡ (num x)))) → ∃ Term (λ m → EvalTo (plus n1 n2) m)
+    get-evTo n1 n2 (exists x1 p1) (exists x2 p2) rewrite p1 | p2 = exists (num (x1 + x2)) (e-sum x1 x2)
+
+    evTo = get-evTo n1 n2 n1≡num n2≡num
+
+
 progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t p p₁ p₂) = {!   !}
 progress (app e1 e2) t (t-app [] e1 e2 t1 t p p₁) = {!   !}
 progress (fun x t1 e1) .(Tarrow t1 t2) (t-fun [] x t1 t2 e1 p) = {!   !}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- some test examples
