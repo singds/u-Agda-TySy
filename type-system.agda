@@ -268,26 +268,25 @@ lemma-canon-arrow (fun x t1 e1) pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e
 
 -- PROGRESS THEOREM
 progress : (m : Term) (t : Type) → HasType [] m t → (Value m) ⊎ (∃ Term (λ m' → EvalTo m m'))
+
 progress true Bool (t-true [])                      = left v-true
+
 progress false Bool (t-false [])                    = left v-false
+
 progress (num n) Nat (t-num [] n)                   = left (v-num n)
-progress (plus n1 n2) Nat (t-sum [] n1 n2 p1 p2) with is-value n1 | is-value n2
+
+progress (fun x t1 e1) (Tarrow t1 t2) (t-fun [] x t1 t2 e1 p) = left (v-fun x t1 e1)
+
+progress (plus n1 n2) Nat (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-value n1 | is-value n2
 ... | right n1NotValue | _ = {!   !} -- n1 is not a value
     where
-
-    n1HasTypeNat = lemma-inversion-nat-m1 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
     n1EvalOrValue = progress n1 Nat n1HasTypeNat
 
 ... | left n1Value | right n2NotValue = {!   !} where
-
-    n2HasTypeNat = lemma-inversion-nat-m2 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
-    n2EvalTo = progress n2 Nat n2HasTypeNat
+    n2EvalOrValue = progress n2 Nat n2HasTypeNat
 
 ... | left n1Value | left n2Value = right evTo
     where
-
-    n1HasTypeNat = lemma-inversion-nat-m1 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
-    n2HasTypeNat = lemma-inversion-nat-m2 [] n1 n2 Nat (t-sum [] n1 n2 p1 p2)
 
     -- I prooved that n1 ≡ num x1
     -- I prooved that n2 ≡ num x2
@@ -305,9 +304,23 @@ progress (plus n1 n2) Nat (t-sum [] n1 n2 p1 p2) with is-value n1 | is-value n2
     evTo = get-evTo n1 n2 n1≡num n2≡num
 
 
-progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t p p₁ p₂) = {!   !}
-progress (app e1 e2) t (t-app [] e1 e2 t1 t p p₁) = {!   !}
-progress (fun x t1 e1) .(Tarrow t1 t2) (t-fun [] x t1 t2 e1 p) = {!   !}
+progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value e1
+... | left value = right evTo where
+    e1TrueOrFalse = lemma-canon-bool e1 value e1HasTypeBool
+    
+    get-evTo : (g : Term) → (g ≡ true) ⊎ (g ≡ false) → ∃ Term (λ m → EvalTo (if g e2 e3) m)
+    get-evTo g (left gEqTrue) rewrite gEqTrue = exists e2 (e-if-true e2 e3)
+    get-evTo g (right gEqFalse) rewrite gEqFalse = exists e3 (e-if-false e2 e3)
+
+    evTo = get-evTo e1 e1TrueOrFalse
+
+... | right notValue = {!   !}
+
+progress (app e1 e2) t (t-app [] e1 e2 t1 t p1 p2) with is-value e1 | is-value e2
+... | right e1NotValue | _ = {!   !}
+... | left e1Value | right e2NotValue = {!   !}
+... | left e1Value | left e2Value = {!   !}
+
 
 
 
