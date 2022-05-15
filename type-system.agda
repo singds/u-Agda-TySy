@@ -14,6 +14,26 @@ data _⊎_ (A B : Set) : Set where
   left : A → A ⊎ B
   right : B → A ⊎ B
 
+-- If you know that can't be a proof of B, you can get a proof of A
+⊎-getA : {A B : Set} → A ⊎ B → (B → ⊥) → A
+⊎-getA (left x) f = x
+⊎-getA (right x) f with f x
+... | ()
+
+-- If you know that can't be a proof of A, you can get a proof of B
+⊎-getB : {A B : Set} → A ⊎ B → (A → ⊥) → B
+⊎-getB (left x) f with f x
+... | ()
+⊎-getB (right x) f = x
+
+{-
+ex-falsum-quodlibet : {X : Set} → ⊥ → X
+ex-falsum-quodlibet ()
+
+⊎-getB : {A B : Set} → A ⊎ B → (A → ⊥) → B
+⊎-getB (left  x) f = ex-falsum-quodlibet (f x)
+⊎-getB (right x) f = x
+-}
 
 -- existential quantifier
 -- B is a set that is dependent on A
@@ -298,10 +318,10 @@ progress (plus n1 n2) Nat (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-val
     n1≡num = lemma-canon-nat n1 n1Value n1HasTypeNat
     n2≡num = lemma-canon-nat n2 n2Value n2HasTypeNat
 
-    get-evTo : (n1 n2 : Term) → (∃ ℕ (λ x → (n1 ≡ (num x)))) → (∃ ℕ (λ x → (n2 ≡ (num x)))) → ∃ Term (λ m → EvalTo (plus n1 n2) m)
-    get-evTo n1 n2 (exists x1 p1) (exists x2 p2) rewrite p1 | p2 = exists (num (x1 + x2)) (e-sum x1 x2)
+    get-evTo : (∃ ℕ (λ x → (n1 ≡ (num x)))) → (∃ ℕ (λ x → (n2 ≡ (num x)))) → ∃ Term (λ m → EvalTo (plus n1 n2) m)
+    get-evTo (exists x1 p1) (exists x2 p2) rewrite p1 | p2 = exists (num (x1 + x2)) (e-sum x1 x2)
 
-    evTo = get-evTo n1 n2 n1≡num n2≡num
+    evTo = get-evTo n1≡num n2≡num
 
 
 progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value e1
@@ -378,3 +398,4 @@ ex9 = in-tail zero (succ (succ zero)) (succ zero ∷ (zero ∷ []))
 ex-exists : ∃ ℕ (λ x → (succ x) ≡ (succ (succ zero)))
 ex-exists = exists (succ zero) (refl (succ (succ zero)))
 
+ 
