@@ -2,7 +2,7 @@
 data ⊥ : Set where
 
 data _≡_ {A : Set} : A → A → Set where
-  refl : (a : A) → a ≡ a
+  refl : {a : A} → a ≡ a
 
 {-# BUILTIN EQUALITY _≡_ #-}
 
@@ -50,18 +50,18 @@ data ℕ : Set where
 
 -- Congruence
 cong : {A B : Set} {x y : A} → (f : A → B) → (x ≡ y) → (f x ≡ f y)
-cong f (refl a) = refl (f a)
+cong f refl = refl
 
 -- If the successors of two numbers are equals, then the two numbers are equal
 -- This can't be generalized right ???
 succ-eq-pred-eq : {x y : ℕ} → succ x ≡ succ y → x ≡ y
-succ-eq-pred-eq (refl (succ x)) = refl x
+succ-eq-pred-eq refl = refl
 
 -- Comparator for natual numbers
 -- Given two numbers it provides either a proof that those number are equals or
 -- a proof that those numbers are not equal.
 comp-ℕ : (x : ℕ) → (y : ℕ) → ((x ≡ y) ⊎ (x ≢ y))
-comp-ℕ zero zero = left (refl zero)
+comp-ℕ zero zero = left refl
 comp-ℕ zero (succ y) = right (λ ())
 comp-ℕ (succ x) zero = right (λ ())
 comp-ℕ (succ x) (succ y) with comp-ℕ x y
@@ -102,7 +102,7 @@ _++_ : {A : Set} → List {A} → List {A} → List {A}
 
 
 -- Remove the given element from a list of integers
-rem-ℕ : List {ℕ} → (x : ℕ) → List {ℕ}
+rem-ℕ : List → (x : ℕ) → List
 rem-ℕ [] x = []
 rem-ℕ (x ∷ l) y with comp-ℕ x y
 ... | left p = rem-ℕ l y             -- x equals y
@@ -137,28 +137,33 @@ data Env : Set where
 -- m-first = match the first
 -- m-tail  = match the tail
 data EnvContains : ℕ → Type → Env → Set where
-  m-first : (n : ℕ) (t : Type) (env : Env) → EnvContains n t (env-add n t env)
-  m-tail  : (n n₁ : ℕ) (t t₁ : Type) (env : Env) → EnvContains n t (env) → EnvContains n t (env-add n₁ t₁ env)
+  m-first : (n : ℕ) (t : Type) (Γ : Env) → EnvContains n t (env-add n t Γ)
+  m-tail  : (n n₁ : ℕ) (t t₁ : Type) (Γ : Env) → EnvContains n t (Γ) → EnvContains n t (env-add n₁ t₁ Γ)
 
 -- Typing rules
 -- HasType is the set that contains the proofs that the term M has the type T in the environment E
 --             E      M       T        E = environment   M = term   T = type
 data HasType : Env → Term → Type → Set where
-  t-true  : (env : Env) → HasType env true Bool
-  t-false : (env : Env) → HasType env false Bool
-  t-num   : (env : Env) (n : ℕ) → HasType env (num n) Nat
-  t-sum   : (env : Env) (n1 n2 : Term) (p1 : HasType env n1 Nat) (p2 : HasType env n2 Nat) → HasType env (plus n1 n2) Nat
-  t-if    : (env : Env) (e1 e2 e3 : Term) (t : Type) (p1 : HasType env e1 Bool) (p2 : HasType env e2 t) (p3 : HasType env e3 t) → HasType env (if e1 e2 e3) t
-  t-app   : (env : Env) (e1 e2 : Term) (t1 t2 : Type) (p1 : HasType env e1 (Tarrow t1 t2)) (p2 : HasType env e2 t1) → HasType env (app e1 e2) t2
-  t-fun   : (env : Env) (x : ℕ) (t1 t2 : Type) (e1 : Term) (p : HasType (env-add x t1 env) e1 t2) → HasType env (fun x t1 e1) (Tarrow t1 t2)
-  t-var   : (env : Env) (x : ℕ) (t : Type) (p : EnvContains x t env) → HasType env (var x) t
+  t-true  : {Γ : Env} → HasType Γ true Bool
+  t-false : {Γ : Env} → HasType Γ false Bool
+  t-num   : {Γ : Env} (n : ℕ) → HasType Γ (num n) Nat
+  t-sum   : {Γ : Env} {n1 n2 : Term}
+            (p1 : HasType Γ n1 Nat) (p2 : HasType Γ n2 Nat) → HasType Γ (plus n1 n2) Nat
+  t-if    : {Γ : Env} {e1 e2 e3 : Term} {t : Type}
+            (p1 : HasType Γ e1 Bool) (p2 : HasType Γ e2 t) (p3 : HasType Γ e3 t) → HasType Γ (if e1 e2 e3) t
+  t-app   : {Γ : Env} {e1 e2 : Term} {t1 t2 : Type}
+            (p1 : HasType Γ e1 (Tarrow t1 t2)) (p2 : HasType Γ e2 t1) → HasType Γ (app e1 e2) t2
+  t-fun   : {Γ : Env} {x : ℕ} {t1 t2 : Type} {e1 : Term}
+            (p : HasType (env-add x t1 Γ) e1 t2) → HasType Γ (fun x t1 e1) (Tarrow t1 t2)
+  t-var   : {Γ : Env} {x : ℕ} {t : Type}
+            (inEvn : EnvContains x t Γ) → HasType Γ (var x) t
 
 
 data Value : Term → Set where
-  v-true : Value true
+  v-true  : Value true
   v-false : Value false
-  v-num : (n : ℕ) → Value (num n)
-  v-fun : (x : ℕ) (t : Type) (e : Term) →  Value (fun x t e)
+  v-num   : (n : ℕ) → Value (num n)
+  v-fun   : (x : ℕ) (t : Type) (e : Term) →  Value (fun x t e)
 
 NotValue : Term → Set
 NotValue m = ((Value m) → ⊥)
@@ -166,32 +171,33 @@ NotValue m = ((Value m) → ⊥)
 -- Given a term returns a proof that this term is a value or a proof that this
 -- term is not a value
 is-value : (m : Term) → Value m ⊎ NotValue m
-is-value true = left v-true
-is-value false = left v-false
-is-value (num x) = left (v-num x)
-is-value (var x) = right (λ ())
-is-value (plus m m₁) = right (λ ())
-is-value (if m m₁ m₂) = right (λ ())
-is-value (app m m₁) = right (λ ())
-is-value (fun x t m) = left (v-fun x t m)
+is-value true          = left v-true
+is-value false         = left v-false
+is-value (num x)       = left (v-num x)
+is-value (var x)       = right (λ ())
+is-value (plus m m₁)   = right (λ ())
+is-value (if m m₁ m₂)  = right (λ ())
+is-value (app m m₁)    = right (λ ())
+is-value (fun x t m)   = left (v-fun x t m)
 
 -- Substitution
 -- occurences of the variable x are substituted with the term m in term t, producing a new term  
 subst : ℕ → Term → Term → Term
-subst x m true          = true
-subst x m false         = false
-subst x m (num n)       = num n
+subst x m true           = true
+subst x m false          = false
+subst x m (num n)        = num n
 subst x m (var y) with comp-ℕ x y
 ... | left p = m         -- case x equals y
 ... | right p = var y    -- case x not equals y
-subst x m (plus e1 e2)  = plus (subst x m e1) (subst x m e2)
-subst x m (if e1 e2 e3) = if (subst x m e1) (subst x m e2) (subst x m e3)
-subst x m (app e1 e2)   = app (subst x m e1) (subst x m e2)
-subst x m (fun y t e)   = fun y t (subst x m e) -- ???
+subst x m (plus e1 e2)   = plus (subst x m e1) (subst x m e2)
+subst x m (if e1 e2 e3)  = if (subst x m e1) (subst x m e2) (subst x m e3)
+subst x m (app e1 e2)    = app (subst x m e1) (subst x m e2)
+subst x m (fun y t e)    = fun y t (subst x m e) -- ???
 -- y should not appear in fv(e) ???
 -- the substitution in this case should not be defined.
 -- we define it anyway, we force this to not happen in the typing rules
 -- here we have to deal with alpha equivalence
+-- we should introduce alpha conversion when y appears in fv (m)
 
 -- Evaluation in a single step
 data EvalTo : Term → Term → Set where
@@ -203,12 +209,9 @@ data EvalTo : Term → Term → Set where
   e-if-false : (m2 m3 : Term) → EvalTo (if false m2 m3) m3
   -- beta reduction
   -- how can i say that an element is not in a list ?
-  e-beta     : (x : ℕ) (t : Type) (b e1 : Term) (p1 : Value b) → EvalTo (app (fun x t e1) b) (subst x b e1)
+  e-beta     : (x : ℕ) (t : Type) (e1 v2 : Term) (pv : Value v2) → EvalTo (app (fun x t e1) v2) (subst x v2 e1)
   e-app1     : (m1 m1' m2 : Term) (p1 : EvalTo m1 m1') → EvalTo (app m1 m2) (app m1' m2)
   e-app2     : (v1 m2 m2' : Term) (p1 : Value v1) (p1 : EvalTo m2 m2') → EvalTo (app v1 m2) (app v1 m2')
-
-ev-m' : {m m' : Term} → EvalTo m m' → Term
-ev-m' {m} {m'} _ = m'
 
 -- Evaluation in multiple steps
 -- reflexive and transitive closure
@@ -217,74 +220,76 @@ data EvalTo* : Term → Term → Set where
   e-trans : (e1 e2 e3 : Term) → EvalTo* e1 e2 → EvalTo* e2 e3 → EvalTo* e1 e3   -- transitivity
 
 
+
 -- INVERTION LEMMAS
 -- invertion lemma for bool terms 
-lemma-inversion-true : {env : Env} {t : Type} → HasType env true t → t ≡ Bool
-lemma-inversion-true (t-true env) = refl Bool
+lemma-inversion-true : {Γ : Env} {t : Type} → HasType Γ true t → t ≡ Bool
+lemma-inversion-true t-true = refl
 
-lemma-inversion-false : {env : Env} {t : Type} → HasType env false t → t ≡ Bool
-lemma-inversion-false (t-false env) = refl Bool
+lemma-inversion-false : {Γ : Env} {t : Type} → HasType Γ false t → t ≡ Bool
+lemma-inversion-false t-false = refl
 
 -- invertion lemma for sum term 
 lemma-inversion-nat : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (plus m1 m2) t → t ≡ Nat
-lemma-inversion-nat (t-sum Γ m1 m2 p1 p2) = refl Nat
+lemma-inversion-nat (t-sum p1 p2) = refl
 
 lemma-inversion-nat-m1 : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (plus m1 m2) t → HasType Γ m1 Nat
-lemma-inversion-nat-m1 (t-sum Γ m1 m2 p1 p2) = p1
+lemma-inversion-nat-m1 (t-sum p1 p2) = p1
 
 lemma-inversion-nat-m2 : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (plus m1 m2) t → HasType Γ m2 Nat
-lemma-inversion-nat-m2 (t-sum Γ m1 m2 p1 p2) = p2
+lemma-inversion-nat-m2 (t-sum p1 p2) = p2
 
 -- invertion lemma for if then else term
 lemma-inversion-if-e1 : {Γ : Env} {e1 e2 e3 : Term} {t : Type} → HasType Γ (if e1 e2 e3) t → HasType Γ e1 Bool
-lemma-inversion-if-e1 (t-if Γ e1 e2 e3 t p1 p2 p3) = p1
+lemma-inversion-if-e1 (t-if p1 p2 p3) = p1
 
 lemma-inversion-if-e2 : {Γ : Env} {e1 e2 e3 : Term} {t : Type} → HasType Γ (if e1 e2 e3) t → HasType Γ e2 t
-lemma-inversion-if-e2 (t-if Γ e1 e2 e3 t p1 p2 p3) = p2
+lemma-inversion-if-e2 (t-if p1 p2 p3) = p2
 
 lemma-inversion-if-e3 : {Γ : Env} {e1 e2 e3 : Term} {t : Type} → HasType Γ (if e1 e2 e3) t → HasType Γ e3 t
-lemma-inversion-if-e3 (t-if Γ e1 e2 e3 t p1 p2 p3) = p3
+lemma-inversion-if-e3 (t-if p1 p2 p3) = p3
 
 -- invertion lemma for variable term
 lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type} → HasType Γ (var x) t → EnvContains x t Γ
-lemma-invertion-var (t-var env x t p) = p     -- p is the proof that "env" contains "x"
+lemma-invertion-var (t-var p) = p     -- p is the proof that "Γ" contains "x"
 
 lemma-invertion-app : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (app m1 m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
-lemma-invertion-app (t-app Γ m1 m2 t1 t2 p1 p2) = exists t1 (and p1 p2)
+lemma-invertion-app (t-app {Γ} {m1} {m2} {t1} {t2} p1 p2) = exists t1 (and p1 p2)
 
 lemma-invertion-fun : {Γ : Env} {m : Term} {x : ℕ} {t1 t : Type} → HasType Γ (fun x t1 m) t → ∃ Type (λ t2 → (t ≡ (Tarrow t1 t2)) & HasType (env-add x t1 Γ) m t2)
-lemma-invertion-fun (t-fun Γ x t1 t2 m p) = exists t2 (and (refl (Tarrow t1 t2)) p)
+lemma-invertion-fun (t-fun {Γ} {x} {t1} {t2} {m} p) = exists t2 (and refl p)
+
 
 
 -- CANONICAL FORMS LEMMAS
 -- if v is a value of type Bool then v is ewither true or false
 lemma-canon-bool : {Γ : Env} {m : Term} → Value m → (HasType Γ m Bool) →
           (m ≡ true) ⊎ (m ≡ false)
-lemma-canon-bool pv (t-true Γ) = left (refl true)
-lemma-canon-bool pv (t-false Γ) = right (refl false)
+lemma-canon-bool pv (t-true) = left refl
+lemma-canon-bool pv (t-false) = right refl
 
 lemma-canon-nat : {Γ : Env} {m : Term} → Value m → (HasType Γ m Nat) →
           ∃ ℕ (λ n → m ≡ num n)
-lemma-canon-nat pv (t-num Γ n) = exists n (refl (num n))
+lemma-canon-nat pv (t-num n) = exists n refl
 
 lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} {m : Term} → Value m → (HasType Γ m (Tarrow t1 t2)) →
           ∃ ℕ (λ x → (∃ Term (λ m1 → m ≡ (fun x t1 m1))))
-lemma-canon-arrow pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e1 (refl (fun x t1 e1)))
+lemma-canon-arrow pv (t-fun {Γ} {x} {t1} {t2} {e1} pt) = exists x (exists e1 refl)
 
 
 
 -- PROGRESS THEOREM
 progress : {m : Term} {t : Type} → HasType [] m t → (Value m) ⊎ (∃ Term (λ m' → EvalTo m m'))
 
-progress (t-true []) = left v-true
+progress t-true = left v-true
 
-progress (t-false []) = left v-false
+progress t-false = left v-false
 
-progress (t-num [] n) = left (v-num n)
+progress (t-num n) = left (v-num n)
 
-progress (t-fun [] x t1 t2 e1 p) = left (v-fun x t1 e1)
+progress (t-fun {[]} {x} {t1} {t2} {e1} p) = left (v-fun x t1 e1)
 
-progress (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-value n1 | is-value n2
+progress (t-sum {Γ} {n1} {n2} n1HasTypeNat n2HasTypeNat) with is-value n1 | is-value n2
 ... | right n1NotValue | _ = right evTo -- n1 is not a value
     where
     n1ValueOrEval = progress n1HasTypeNat
@@ -326,7 +331,7 @@ progress (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-value n1 | is-value 
     evTo = get-evTo n1≡num n2≡num
 
 
-progress (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value e1
+progress (t-if {[]} {e1} {e2} {e3} e1HasTypeBool p2 p3) with is-value e1
 ... | left e1Value = right evTo
     where
     e1TrueOrFalse = lemma-canon-bool e1Value e1HasTypeBool
@@ -347,7 +352,7 @@ progress (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value e1
 
     evTo = get-evTo ∃e1'
 
-progress (t-app [] e1 e2 t1 t2 e1HasTypeT1T2 e2HasTypeT1) with is-value e1 | is-value e2
+progress (t-app {[]} {e1} {e2} {t1} {_} e1HasTypeT1T2 e2HasTypeT1) with is-value e1 | is-value e2
 ... | right e1NotValue | _ = right evTo
     where
     e1ValueOrEval = progress e1HasTypeT1T2
@@ -374,14 +379,39 @@ progress (t-app [] e1 e2 t1 t2 e1HasTypeT1T2 e2HasTypeT1) with is-value e1 | is-
     ∃e1≡Fun = lemma-canon-arrow e1Value e1HasTypeT1T2
 
     get-evTo : ∃ ℕ (λ x → (∃ Term (λ m1 → e1 ≡ (fun x t1 m1)))) → ∃ Term (λ m → EvalTo (app e1 e2) m)
-    get-evTo (exists x (exists m1 e1≡Fun)) rewrite e1≡Fun = exists (subst x e2 m1) (e-beta x t1 e2 m1 e2Value)
+    get-evTo (exists x (exists m1 e1≡Fun)) rewrite e1≡Fun = exists (subst x e2 m1) (e-beta x t1 m1 e2 e2Value)
 
     evTo = get-evTo ∃e1≡Fun
 
 
+substitution-lemma : {Γ : Env} {x : ℕ} {t1 t2 : Type} {m1 m2 : Term} → HasType (env-add x t2 Γ) m1 t1 → HasType Γ m2 t2 → HasType Γ (subst x m2 m1) t1
+substitution-lemma t-true m2T2 = t-true
+substitution-lemma t-false m2T2 = t-false
+substitution-lemma (t-num n) m2T2 = t-num n
+substitution-lemma (t-sum e1Nat e2Nat) m2T2 = t-sum (substitution-lemma e1Nat m2T2)
+                                                (substitution-lemma e2Nat m2T2)
+substitution-lemma (t-if e1Bool e2T e3T) m2T2 = t-if (substitution-lemma e1Bool m2T2)
+                                                  (substitution-lemma e2T m2T2)
+                                                  (substitution-lemma e3T m2T2)
+substitution-lemma (t-app e1T1T2 e2T1) m2T2 = t-app (substitution-lemma e1T1T2 m2T2)
+                                                (substitution-lemma e2T1 m2T2)
+substitution-lemma (t-fun p) m2T2 = {!!}
+substitution-lemma (t-var (m-first y t Γ)) m2T2 = {!!}
+substitution-lemma (t-var (m-tail n n₁ t t₁ Γ inEnv)) m2T2 = {!!}
 
 
 
+preservation : {Γ : Env} {m m' : Term} {t : Type} → HasType Γ m t → EvalTo m m' → HasType Γ m' t
+preservation (t-sum m1Nat m2Nat) (e-sum-l m1 m1' m2 pe)          = t-sum (preservation m1Nat pe) m2Nat
+preservation (t-sum m1Nat m2Nat) (e-sum-r n1 m2 m2' pe)          = t-sum m1Nat (preservation m2Nat pe)
+preservation (t-sum m1Nat m2Nat) (e-sum n1 n2)                   = t-num (n1 + n2)
+preservation (t-if e1Bool e2T e3T) (e-if-guard m1 m1' m2 m3 pe)  = t-if (preservation e1Bool pe) e2T e3T
+preservation (t-if e1Bool e2T e3T) (e-if-true m2 m3)             = e2T
+preservation (t-if e1Bool e2T e3T) (e-if-false m2 m3)            = e3T
+preservation (t-app e1T1T2 e2T1) (e-beta x t e1 e2 p1)            = {!!} where
+  
+preservation (t-app e1T1T2 e2T1) (e-app1 m1 m1' m2 pe)           = t-app (preservation e1T1T2 pe) e2T1
+preservation (t-app e1T1T2 e2T1) (e-app2 v1 m2 m2' p1 pe)        = t-app e1T1T2 (preservation e2T1 pe)
 
 
 
@@ -400,12 +430,10 @@ progress (t-app [] e1 e2 t1 t2 e1HasTypeT1T2 e2HasTypeT1) with is-value e1 | is-
 
 -- some test examples
 ex : HasType [] (if true (num (succ zero)) (num zero)) Nat
-ex = t-if [] true (num (succ zero)) (num zero) Nat (t-true [])
-          (t-num [] (succ zero)) (t-num [] zero) 
+ex = t-if t-true (t-num (succ zero)) (t-num zero) 
   
 ex' : HasType [] (plus (num (succ (succ zero))) (num zero)) Nat
-ex' = t-sum [] (num (succ (succ zero))) (num zero)
-        (t-num [] (succ (succ zero))) (t-num [] zero)
+ex' = t-sum (t-num (succ (succ zero))) (t-num zero)
 
 ex'' : EnvContains zero Nat (env-add zero Nat []) 
 ex'' = m-first zero Nat []
@@ -432,6 +460,6 @@ ex9 = in-tail zero (succ (succ zero)) (succ zero ∷ (zero ∷ []))
 
 
 ex-exists : ∃ ℕ (λ x → (succ x) ≡ (succ (succ zero)))
-ex-exists = exists (succ zero) (refl (succ (succ zero)))
+ex-exists = exists (succ zero) refl
 
  
