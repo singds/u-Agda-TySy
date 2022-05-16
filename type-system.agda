@@ -26,15 +26,6 @@ data _⊎_ (A B : Set) : Set where
 ... | ()
 ⊎-getB (right x) f = x
 
-{-
-ex-falsum-quodlibet : {X : Set} → ⊥ → X
-ex-falsum-quodlibet ()
-
-⊎-getB : {A B : Set} → A ⊎ B → (A → ⊥) → B
-⊎-getB (left  x) f = ex-falsum-quodlibet (f x)
-⊎-getB (right x) f = x
--}
-
 -- existential quantifier
 -- B is a set that is dependent on A
 data ∃ (A : Set) (B : A → Set) : Set where
@@ -281,10 +272,6 @@ lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} (m : Term) → Value m → (HasTyp
 lemma-canon-arrow (fun x t1 e1) pv (t-fun Γ x t1 t2 e1 pt) = exists x (exists e1 (refl (fun x t1 e1)))
 
 
--- why can't i prove this ???
--- magic : {A B : Set} → A ⊎ B → (A → ⊥) → B
--- magic (right b) p2 = b
-
 
 -- PROGRESS THEOREM
 progress : (m : Term) (t : Type) → HasType [] m t → (Value m) ⊎ (∃ Term (λ m' → EvalTo m m'))
@@ -298,12 +285,27 @@ progress (num n) Nat (t-num [] n)                   = left (v-num n)
 progress (fun x t1 e1) (Tarrow t1 t2) (t-fun [] x t1 t2 e1 p) = left (v-fun x t1 e1)
 
 progress (plus n1 n2) Nat (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-value n1 | is-value n2
-... | right n1NotValue | _ = {!   !} -- n1 is not a value
+... | right n1NotValue | _ = right evTo -- n1 is not a value
     where
-    n1EvalOrValue = progress n1 Nat n1HasTypeNat
+    n1ValueOrEval = progress n1 Nat n1HasTypeNat
+    ∃n1' = ⊎-getB n1ValueOrEval n1NotValue
+    
+    get-evTo : (∃ Term (λ n1' → EvalTo n1 n1')) → ∃ Term (λ m → EvalTo (plus n1 n2) m)
+    get-evTo (exists n1' n1→n1') = exists (plus n1' n2) (e-sum-l n1 n1' n2 n1→n1')
 
-... | left n1Value | right n2NotValue = {!   !} where
-    n2EvalOrValue = progress n2 Nat n2HasTypeNat
+    evTo = get-evTo ∃n1'
+
+... | left n1Value | right n2NotValue = right evTo
+    where
+    ∃x1 = lemma-canon-nat n1 n1Value n1HasTypeNat
+
+    n2ValueOrEval = progress n2 Nat n2HasTypeNat
+    ∃n2' = ⊎-getB n2ValueOrEval n2NotValue
+    
+    get-evTo : (∃ ℕ (λ x1 → n1 ≡ num x1)) → (∃ Term (λ n2' → EvalTo n2 n2')) → ∃ Term (λ m → EvalTo (plus n1 n2) m)
+    get-evTo (exists x1 p1) (exists n2' p2) rewrite p1 = exists (plus (num x1) n2') (e-sum-r x1 n2 n2' p2)
+    
+    evTo = get-evTo ∃x1 ∃n2'
 
 ... | left n1Value | left n2Value = right evTo
     where
@@ -325,7 +327,8 @@ progress (plus n1 n2) Nat (t-sum [] n1 n2 n1HasTypeNat n2HasTypeNat) with is-val
 
 
 progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value e1
-... | left value = right evTo where
+... | left value = right evTo
+    where
     e1TrueOrFalse = lemma-canon-bool e1 value e1HasTypeBool
     
     get-evTo : (g : Term) → (g ≡ true) ⊎ (g ≡ false) → ∃ Term (λ m → EvalTo (if g e2 e3) m)
@@ -334,7 +337,15 @@ progress (if e1 e2 e3) t (t-if [] e1 e2 e3 t e1HasTypeBool p2 p3) with is-value 
 
     evTo = get-evTo e1 e1TrueOrFalse
 
-... | right notValue = {!   !}
+... | right e1NotValue = right evTo
+    where
+    e1ValueOrEval = progress e1 Bool e1HasTypeBool
+    ∃e1' = ⊎-getB e1ValueOrEval e1NotValue
+    
+    get-evTo : ∃ Term (λ e1' → EvalTo e1 e1') → ∃ Term (λ m → EvalTo (if e1 e2 e3) m)
+    get-evTo (exists e1' p1) = exists (if e1' e2 e3) (e-if-guard e1 e1' e2 e3 p1)
+
+    evTo = get-evTo ∃e1'
 
 progress (app e1 e2) t (t-app [] e1 e2 t1 t p1 p2) with is-value e1 | is-value e2
 ... | right e1NotValue | _ = {!   !}
