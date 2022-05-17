@@ -1,6 +1,12 @@
 
 data ⊥ : Set where
 
+
+-- From a value of type ⊥ (bottom) I can derive whatever I want.
+-- Actually there are no values of type ⊥.
+absurd : {A : Set} → ⊥ → A
+absurd ()
+
 data _≡_ {A : Set} : A → A → Set where
   refl : {a : A} → a ≡ a
 
@@ -67,6 +73,14 @@ comp-ℕ (succ x) zero = right (λ ())
 comp-ℕ (succ x) (succ y) with comp-ℕ x y
 ... | left p  = left (cong succ p)
 ... | right p = right λ pSuccEq → p (succ-eq-pred-eq pSuccEq)
+
+-- The comparison of an element with itself always results in a proof of equality.
+-- Comparing x with x, you can't get a proof that x ≢ x
+comp-ℕ-xx : (x : ℕ) → (comp-ℕ x x ≡ left refl)
+comp-ℕ-xx zero = refl
+comp-ℕ-xx (succ x) with comp-ℕ x x
+comp-ℕ-xx (succ x) | left refl = refl
+... | right p = absurd (p refl)
 
 _+_ : ℕ → ℕ → ℕ
 zero + b   = b
@@ -137,8 +151,8 @@ data Env : Set where
 -- m-first = match the first
 -- m-tail  = match the tail
 data EnvContains : ℕ → Type → Env → Set where
-  m-first : (n : ℕ) (t : Type) (Γ : Env) → EnvContains n t (env-add n t Γ)
-  m-tail  : (n n₁ : ℕ) (t t₁ : Type) (Γ : Env) → EnvContains n t (Γ) → EnvContains n t (env-add n₁ t₁ Γ)
+  m-first : (x : ℕ) (t : Type) (Γ : Env) → EnvContains x t (env-add x t Γ)
+  m-tail  : {Γ : Env} {x : ℕ} {t : Type} (y  : ℕ) (ty : Type) → EnvContains x t (Γ) → EnvContains x t (env-add y ty Γ)
 
 -- Typing rules
 -- HasType is the set that contains the proofs that the term M has the type T in the environment E
@@ -384,6 +398,7 @@ progress (t-app {[]} {e1} {e2} {t1} {_} e1HasTypeT1T2 e2HasTypeT1) with is-value
     evTo = get-evTo ∃e1≡Fun
 
 
+
 substitution-lemma : {Γ : Env} {x : ℕ} {t1 t2 : Type} {m1 m2 : Term} → HasType (env-add x t2 Γ) m1 t1 → HasType Γ m2 t2 → HasType Γ (subst x m2 m1) t1
 substitution-lemma t-true m2T2 = t-true
 substitution-lemma t-false m2T2 = t-false
@@ -396,8 +411,8 @@ substitution-lemma (t-if e1Bool e2T e3T) m2T2 = t-if (substitution-lemma e1Bool 
 substitution-lemma (t-app e1T1T2 e2T1) m2T2 = t-app (substitution-lemma e1T1T2 m2T2)
                                                 (substitution-lemma e2T1 m2T2)
 substitution-lemma (t-fun p) m2T2 = {!!}
-substitution-lemma (t-var (m-first y t Γ)) m2T2 = {!!}
-substitution-lemma (t-var (m-tail n n₁ t t₁ Γ inEnv)) m2T2 = {!!}
+substitution-lemma (t-var (m-first x t2 Γ)) m2T2 rewrite comp-ℕ-xx x = m2T2
+substitution-lemma (t-var (m-tail y ty inEnv)) m2T2 = substitution-lemma {!!} m2T2
 
 
 
@@ -412,54 +427,3 @@ preservation (t-app e1T1T2 e2T1) (e-beta x t e1 e2 p1)            = {!!} where
   
 preservation (t-app e1T1T2 e2T1) (e-app1 m1 m1' m2 pe)           = t-app (preservation e1T1T2 pe) e2T1
 preservation (t-app e1T1T2 e2T1) (e-app2 v1 m2 m2' p1 pe)        = t-app e1T1T2 (preservation e2T1 pe)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- some test examples
-ex : HasType [] (if true (num (succ zero)) (num zero)) Nat
-ex = t-if t-true (t-num (succ zero)) (t-num zero) 
-  
-ex' : HasType [] (plus (num (succ (succ zero))) (num zero)) Nat
-ex' = t-sum (t-num (succ (succ zero))) (t-num zero)
-
-ex'' : EnvContains zero Nat (env-add zero Nat []) 
-ex'' = m-first zero Nat []
-
-ex''' : EnvContains zero Nat (env-add zero Nat (env-add (succ zero) Nat []))
-ex''' = m-first zero Nat (env-add (succ zero) Nat [])
-
-ex'''' : EnvContains (succ zero) Bool (env-add zero Nat (env-add (succ zero) Bool []))
-ex'''' = m-tail (succ zero) zero Bool Nat (env-add (succ zero) Bool [])
-           (m-first (succ zero) Bool []) 
-
-ex5 : EvalTo (if true (num (succ zero)) (num zero)) (num (succ zero))
-ex5 = e-if-true (num (succ zero)) (num zero)
-
-ex7 : in-list zero (zero ∷ [])
-ex7 = in-head zero []
-
-ex8 : in-list zero ((succ zero) ∷ (zero ∷ []))
-ex8 = in-tail zero (succ zero) (zero ∷ []) (in-head zero [])
-
-ex9 : in-list zero ((succ (succ zero)) ∷ ((succ zero) ∷ (zero ∷ [])))
-ex9 = in-tail zero (succ (succ zero)) (succ zero ∷ (zero ∷ []))
-        (in-tail zero (succ zero) (zero ∷ []) (in-head zero []))
-
-
-ex-exists : ∃ ℕ (λ x → (succ x) ≡ (succ (succ zero)))
-ex-exists = exists (succ zero) refl
-
- 
