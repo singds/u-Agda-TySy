@@ -37,13 +37,6 @@ data _⊎_ (A B : Set) : Set where
 data ∃ (A : Set) (B : A → Set) : Set where
   exists : (a : A) (b : B a) → ∃ A B
 
-exists-l : {A : Set} {B : A → Set} → ∃ A B → A
-exists-l (exists a b) = a
-
--- exists-r : {A : Set} {a : A} {B : A → Set} → ∃ A B → B a
--- exists-r (exists a b) = b
-
-
 
 -- A holds and B holds
 -- there must be a proof of A and a proof of B
@@ -142,9 +135,11 @@ fv (fun x t e)   = rem-ℕ (fv e) x
 
 
 -- The type environment
+-- TODO with this definition we can add a variable that is already in the environment,
+-- we should prevent this.
 data Env : Set where
   []       : Env
-  env-add  : ℕ → Type → Env → Env
+  env-add  : ℕ → Type  → Env → Env
 
 
 -- Proposition: the provided environment contains the binding from the provided variable to the provided type.
@@ -398,6 +393,15 @@ progress (t-app {[]} {e1} {e2} {t1} {_} e1HasTypeT1T2 e2HasTypeT1) with is-value
     evTo = get-evTo ∃e1≡Fun
 
 
+-- refl is a proof tha x is equal to x
+-- input :
+--     a proof that an extended environment contains x
+--     a proof that x is not the first element of the environment
+-- output:
+--     a proof that x is in the environment that is the original one without the first element
+in-env-decompose : {Γ : Env} {x y : ℕ} {t1 t2 : Type} → EnvContains x t1 (env-add y t2 Γ) → x ≢ y → EnvContains x t1 Γ
+in-env-decompose (m-first x t Γ) x≢x = absurd (x≢x refl)
+in-env-decompose (m-tail y ty inΓ) x≢y = inΓ
 
 substitution-lemma : {Γ : Env} {x : ℕ} {t1 t2 : Type} {m1 m2 : Term} → HasType (env-add x t2 Γ) m1 t1 → HasType Γ m2 t2 → HasType Γ (subst x m2 m1) t1
 substitution-lemma t-true m2T2 = t-true
@@ -412,7 +416,7 @@ substitution-lemma (t-app e1T1T2 e2T1) m2T2 = t-app (substitution-lemma e1T1T2 m
                                                 (substitution-lemma e2T1 m2T2)
 substitution-lemma (t-fun p) m2T2 = {!!}
 substitution-lemma (t-var (m-first x t2 Γ)) m2T2 rewrite comp-ℕ-xx x = m2T2
-substitution-lemma (t-var (m-tail y ty inEnv)) m2T2 = substitution-lemma {!!} m2T2
+substitution-lemma (t-var (m-tail y ty inEnv)) m2T2 = {!!}
 
 
 
