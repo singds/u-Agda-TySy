@@ -60,12 +60,12 @@ subst j s (var x) with x ≡? j
 ... | left p = s
 ... | right p = var x
 subst j s (e1 app e2) = (subst j s e1) app (subst j s e2)
-subst j s (fun t e1) = subst (succ j) (shift one zero s) e1
+subst j s (fun t e1) = fun t (subst (succ j) (shift one zero s) e1)
 
 data _⇒_ : Term → Term → Set where
   e-app1     : (m1 m1' m2 : Term) (p1 :  m1 ⇒ m1') → (m1 app m2) ⇒ (m1' app m2)
   e-app2     : (v1 m2 m2' : Term) (p1 : Value v1) (p1 : m2 ⇒ m2') → (v1 app m2) ⇒ (v1 app m2')
-  e-beta     :  (t : Type) (e1 v2 : Term) →  Value v2 → ((fun t e1) app v2) ⇒ shift-back one zero (subst zero (shift one zero v2) e1)
+  e-beta     : (t : Type) (e1 v2 : Term) →  Value v2 → ((fun t e1) app v2) ⇒ shift-back one zero (subst zero (shift one zero v2) e1)
 
 has-type-first : {Γ : Env} {tx t : Type} → HasType (tx ∷ Γ) (var zero) t → tx ≡ t
 has-type-first (t-var p) rewrite opt-eq p = refl
@@ -81,26 +81,53 @@ weakening-2 {Γ} {[]} {fun t m} (t-fun p) = t-fun (weakening-2 {Γ} {t ∷ []} {
 weakening-2 {Γ} {ty ∷ Γ₁} {fun t m} (t-fun p) = t-fun {!!}
 
 
-
-weakening-1 : {Γ : Env} {m : Term} {t tx tu : Type} → HasType (tx ∷ Γ) m t → HasType (tx ∷ tu ∷ Γ) (shift one one m) t
-weakening-1 {Γ} {var x} p with x <? one
-weakening-1 {Γ} {var .zero} (t-var p) | left (base< .zero) = t-var p
-... | right p1   = {!!}
-weakening-1 {Γ} {m1 app m2} (t-app p1 p2) = t-app (weakening-1 p1) (weakening-1 p2)
-weakening-1 {Γ} {fun t m} (t-fun p) = {!!}
-
+-- Γ ⊢ m : t ⇒ Γ,t1 ⊢ shift 1 0 m : t
 weakening : {Γ : Env} {m : Term} {t t1 : Type} → HasType Γ m t → HasType (t1 ∷ Γ) (shift one zero m) t
 weakening {Γ} {var x} (t-var p) with x <? zero
 ... | right p2 rewrite symm+ x (succ zero) = t-var p
 weakening (t-app p1 p2) = t-app (weakening p1) (weakening p2)
-weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-1 {Γ} {m} p)
+weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-2 {Γ} {tx ∷ []} {m} p)
 
+-- ROADMAP
+-- Γ ⊢ N : S                        ⇒ Γ,S ⊢ N : S         by weakening
+-- Γ,S ⊢ M : T     Γ,S ⊢ N : S      ⇒ Γ,S ⊢ M{0:=S} : T   by substitution
+-- Γ,S ⊢ M : T     0 ∉ fv(M)        ⇒ Γ ⊢ shift -1 M : T  by back shifting
+substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term} → HasType (Γ₁ ++ (S ∷ Γ)) M T → HasType (Γ₁ ++ (S ∷ Γ)) N S → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
+substitution {Γ} {Γ₁} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
+... | left  p  = {!!}         -- S and T are actually equal types easy to end
+... | right p  = t-var p1
+substitution (t-app p1 p2) p3 = t-app (substitution p1 p3) (substitution p2 p3)
+substitution {Γ} {Γ₁} {S} {_} {M} {N} (t-fun {_} {t1} {t2} {e} p1) p2 = t-fun (substitution {Γ} {t1 ∷ Γ₁} {S} {t2} {e} p1 (weakening {Γ₁ ++ (S ∷ Γ)} {N} p2))
+-- HasType ((t1 ∷ Γ₁) ++ (S ∷ Γ))) (subst (succ (len Γ₁)) (shift one zero N) e1) t2
+-- HasType (t1 ∷ (Γ₁ ++ (S ∷ Γ))) (shift one zero N) S
+-- HasType (Γ₁ ++ (S ∷ Γ)) N S
+
+{-
+substitution : {Γ : Env} {S T : Type} {M N : Term} → HasType (S ∷ Γ) M T → HasType (S ∷ Γ) N S → HasType (S ∷ Γ) (subst zero N M) T
+substitution (t-var {Γ} {x} p1) p2 with x ≡? zero
+... | left p rewrite p | opt-eq p1 = p2
+... | right p = t-var p1
+substitution (t-app p1 p2) p3 = t-app (substitution p1 p3) (substitution p2 p3)
+substitution (t-fun p1) p2 = t-fun {!!}
+-}
+
+
+{-
 substitution-lemma : (Γ : Env) (t1 t : Type) (m s : Term) → HasType (t1 ∷ Γ) m t → HasType Γ s t1 → HasType Γ (shift-back one zero (subst zero (shift one zero s) m)) t
 substitution-lemma Γ t1 t (var x) s (t-var p1) p2 with x ≡? zero
 ... | left pz rewrite pz | opt-eq p1 = {!!}
 ... | right pnz = {!!}
 substitution-lemma Γ t1 t (_ app _) s (t-app p1 p3) p2 = {!!}
 substitution-lemma Γ t1 (Tarrow _ _) (fun _ _) s (t-fun p1) p2 = {!!}
+-}
+
+
+
+type-preservation : {Γ : Env} {m m' : Term} {t : Type} → HasType Γ m t → m ⇒ m' → HasType Γ m' t
+type-preservation (t-app p1 p3) (e-app1 m1 m1' m2 p2) = t-app (type-preservation p1 p2) p3
+type-preservation (t-app p1 p3) (e-app2 v1 m2 m2' p2 p4) = t-app p1 (type-preservation p3 p4)
+type-preservation (t-app p1 p3) (e-beta t e1 v2 x) = {!!}
+
 
 
 
