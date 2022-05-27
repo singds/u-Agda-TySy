@@ -73,10 +73,12 @@ has-type-first (t-var p) rewrite opt-eq p = refl
 
 weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type} → HasType (Γ₁ ++ Γ) m tm → HasType (Γ₁ ++ (tu ∷ Γ)) (shift one (len Γ₁) m) tm
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
-weakening-2 {Γ} {Γ₁} {var x} (t-var p) | left p2  = {!!}
-weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2 = {!!}
+weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var p1) | left  p2 = t-var (pos-first-pos-concat {Type} {Γ₁} {tu ∷ Γ} (get-index-in-first p2 p1))
+weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2
+  rewrite symm+ x (succ zero) = {!!}
 weakening-2 {Γ} {Γ₁} {m1 app m2} (t-app p1 p2) = t-app (weakening-2 {Γ} {Γ₁} {m1} p1) (weakening-2 {Γ} {Γ₁} {m2} p2) 
-weakening-2 {Γ} {Γ₁} {fun t m} p = {!!}
+weakening-2 {Γ} {[]} {fun t m} (t-fun p) = t-fun (weakening-2 {Γ} {t ∷ []} {m} p)
+weakening-2 {Γ} {ty ∷ Γ₁} {fun t m} (t-fun p) = t-fun {!!}
 
 
 
@@ -89,7 +91,7 @@ weakening-1 {Γ} {fun t m} (t-fun p) = {!!}
 
 weakening : {Γ : Env} {m : Term} {t t1 : Type} → HasType Γ m t → HasType (t1 ∷ Γ) (shift one zero m) t
 weakening {Γ} {var x} (t-var p) with x <? zero
-... | right p2 rewrite symm+ {x} {succ zero} = t-var p
+... | right p2 rewrite symm+ x (succ zero) = t-var p
 weakening (t-app p1 p2) = t-app (weakening p1) (weakening p2)
 weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-1 {Γ} {m} p)
 

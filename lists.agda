@@ -68,6 +68,14 @@ len : {A : Set} → List {A} → ℕ
 len [] = zero
 len (x ∷ xs) = succ (len xs)
 
+
+-- If an element is at index <i> of xs ++ ys and <i> < len(xs), then the same element is at index <i> of xs
 get-index-in-first : {A : Set} {xs ys : List {A}} {x : ℕ} {v : A} → x < len xs → get-index (xs ++ ys) x ≡ some v  → get-index xs x ≡ some v
 get-index-in-first {A} {x ∷ xs} {ys} {zero} p1 p2  = p2
 get-index-in-first {A} {x ∷ xs} {ys} {succ n} p1 p2 = get-index-in-first (lemma-pred-< n (len xs) p1) p2
+
+-- If an element is at index <i> of list xs, then it is at index <i> of list xs ++ ys for any ys
+pos-first-pos-concat : {A : Set} {xs ys : List {A}} {n : ℕ} {v : A} → get-index xs n ≡ some v  → get-index (xs ++ ys) n ≡ some v
+pos-first-pos-concat {A} {x ∷ xs} {ys} {zero} p1 = p1
+pos-first-pos-concat {A} {x ∷ xs} {ys} {succ n} p1 = pos-first-pos-concat {A} {xs} {ys} p1
+

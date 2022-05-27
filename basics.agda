@@ -107,7 +107,7 @@ _-_ : ℕ → ℕ → ℕ
 a - zero = a
 a - (succ b) = (pred a) - b
 
-symm+ : {x y : ℕ} → x + y ≡ y + x
+symm+ : (x y : ℕ) → x + y ≡ y + x
 symm+ = {!!}
 
 
