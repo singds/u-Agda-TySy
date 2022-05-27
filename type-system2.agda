@@ -75,7 +75,7 @@ weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type} → HasType (Γ
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
 weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var p1) | left  p2 = t-var (pos-first-pos-concat {Type} {Γ₁} {tu ∷ Γ} (get-index-in-first p2 p1))
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2
-  rewrite symm+ x (succ zero) = {!!}
+  rewrite symm+ x (succ zero) = {!!}  -- should be easy to proove
 weakening-2 {Γ} {Γ₁} {m1 app m2} (t-app p1 p2) = t-app (weakening-2 {Γ} {Γ₁} {m1} p1) (weakening-2 {Γ} {Γ₁} {m2} p2) 
 weakening-2 {Γ} {[]} {fun t m} (t-fun p) = t-fun (weakening-2 {Γ} {t ∷ []} {m} p)
 weakening-2 {Γ} {ty ∷ Γ₁} {fun t m} (t-fun p) = t-fun {!!}
@@ -101,6 +101,22 @@ substitution {Γ} {Γ₁} {S} {_} {M} {N} (t-fun {_} {t1} {t2} {e} p1) p2 = t-fu
 -- HasType ((t1 ∷ Γ₁) ++ (S ∷ Γ))) (subst (succ (len Γ₁)) (shift one zero N) e1) t2
 -- HasType (t1 ∷ (Γ₁ ++ (S ∷ Γ))) (shift one zero N) S
 -- HasType (Γ₁ ++ (S ∷ Γ)) N S
+
+fv : Term → List {ℕ}
+fv (var x) = x ∷ []
+fv (m1 app m2) = (fv m1) ++ (fv m2)
+fv (fun t m) = dec-all ((fv m) remove zero)
+
+
+back-one : {Γ : Env} {tu t : Type} {m : Term} → HasType (tu ∷ Γ) m t → ¬ (zero ∈ (fv m)) → HasType Γ (shift-back one zero m) t
+back-one (t-var p) p3 = {!!}
+back-one (t-app p1 p2) p3 = {!!}
+back-one (t-fun p) p3 = {!!}
+
+
+
+
+
 
 {-
 substitution : {Γ : Env} {S T : Type} {M N : Term} → HasType (S ∷ Γ) M T → HasType (S ∷ Γ) N S → HasType (S ∷ Γ) (subst zero N M) T

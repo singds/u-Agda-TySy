@@ -79,3 +79,6 @@ pos-first-pos-concat : {A : Set} {xs ys : List {A}} {n : ℕ} {v : A} → get-in
 pos-first-pos-concat {A} {x ∷ xs} {ys} {zero} p1 = p1
 pos-first-pos-concat {A} {x ∷ xs} {ys} {succ n} p1 = pos-first-pos-concat {A} {xs} {ys} p1
 
+dec-all : List {ℕ} → List {ℕ}
+dec-all [] = []
+dec-all (x ∷ xs) = pred x ∷ dec-all xs
