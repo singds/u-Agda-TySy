@@ -1,36 +1,117 @@
 open import basics
-
-
+open import lists
 
 -- Language types
 data Type : Set where
   Bool     : Type
   Nat      : Type
   Tarrow : Type → Type → Type
+  
 
 -- Language terms
 data Term : Set where
-  true            : Term
-  false           : Term
-  num             : ℕ → Term                                    -- number
-  var             : ℕ → Term                                    -- variable
-  _+ₙ_            : Term → Term → Term                  -- sum between natural numbers
-  if_then_else_   :  Term → Term → Term → Term     -- if e1 then e1 else e3
-  _app_           : Term → Term → Term                 -- function application
-  fun             : ℕ → Type → Term → Term           -- labda abstraction
+  var     : (x : ℕ) → Term
+  _app_   : (e1 : Term) → (e2 : Term) → Term
+  fun     : (t : Type) → (e1 : Term) → Term
+
+Env = List {Type}
+
+data HasType : Env → Term → Type → Set where
+  t-var   : {Γ : Env} {x : ℕ} {t : Type} → (get-index Γ x) ≡ some t → HasType Γ (var x) t
+  t-app   : {Γ : Env} {e1 e2 : Term} {t1 t2 : Type} (p1 : HasType Γ e1 (Tarrow t1 t2)) (p2 : HasType Γ e2 t1) → HasType Γ (e1 app e2) t2
+  t-fun   : {Γ : Env} {t1 t2 : Type} {e1 : Term}  (p : HasType (t1 ∷  Γ) e1 t2) → HasType Γ (fun t1 e1) (Tarrow t1 t2)
+
+lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type} → HasType Γ (var x) t → (get-index Γ x) ≡ some t
+lemma-invertion-var (t-var p) = p
+
+lemma-invertion-app : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (m1 app m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
+lemma-invertion-app (t-app {Γ} {m1} {m2} {t1} {t2} p1 p2) = exists t1 (p1 and p2)
+
+lemma-invertion-fun : {Γ : Env} {m : Term} {t1 t : Type} → HasType Γ (fun t1 m) t → ∃ Type (λ t2 → (t ≡ (Tarrow t1 t2)) & HasType (t1 ∷ Γ) m t2)
+lemma-invertion-fun (t-fun {Γ} {t1} {t2} p) = exists t2 (refl and p)
+
+data Value : Term → Set where
+  v-fun   : (t : Type) (e : Term) →  Value (fun t e)
+
+shift : ℕ → ℕ → Term → Term
+shift d c (var x) with x <? c
+... | left p = var x
+... | right p = var (x + d)
+shift d c (e1 app e2) = (shift d c e1) app  (shift d c e2)
+shift d c (fun t e1) = fun t (shift d (succ c) e1)
+
+shift-back : ℕ → ℕ → Term → Term
+shift-back d c (var x) with x <? c
+... | left p = var x
+... | right p = var (x - d)
+shift-back d c (e1 app e2) = (shift-back d c e1) app  (shift-back d c e2)
+shift-back d c (fun t e1) = fun t (shift-back d (succ c) e1)
+
+data all-free-≥ (n : ℕ) : Term → Set where
+  all-free-≥-var : (x : ℕ) → x ≥  n → all-free-≥ n (var x)
+  all-free-≥-app : {e1 : Term} {e2 : Term} → all-free-≥ n e1 → all-free-≥ n e2 → all-free-≥ n (e1 app e2)
+  all-free-≥-fun : {t : Type} {e1 : Term} → all-free-≥ (succ n) e1 → all-free-≥ n (fun t e1)
+
+all-free-≥-app-pres : {n : ℕ} {e1 e2 : Term} → all-free-≥ n e1 → all-free-≥ n e2 → all-free-≥ n (e1 app e2)
+all-free-≥-app-pres p1 p2 = all-free-≥-app p1 p2
+
+subst : ℕ → Term → Term → Term
+subst j s (var x) with x ≡? j
+... | left p = s
+... | right p = var x
+subst j s (e1 app e2) = (subst j s e1) app (subst j s e2)
+subst j s (fun t e1) = subst (succ j) (shift one zero s) e1
+
+data _⇒_ : Term → Term → Set where
+  e-app1     : (m1 m1' m2 : Term) (p1 :  m1 ⇒ m1') → (m1 app m2) ⇒ (m1' app m2)
+  e-app2     : (v1 m2 m2' : Term) (p1 : Value v1) (p1 : m2 ⇒ m2') → (v1 app m2) ⇒ (v1 app m2')
+  e-beta     :  (t : Type) (e1 v2 : Term) →  Value v2 → ((fun t e1) app v2) ⇒ shift-back one zero (subst zero (shift one zero v2) e1)
+
+has-type-first : {Γ : Env} {tx t : Type} → HasType (tx ∷ Γ) (var zero) t → tx ≡ t
+has-type-first (t-var p) rewrite opt-eq p = refl
 
 
--- Get the free vriables of a term
-fv : Term → List {ℕ}
-fv true          = []
-fv false         = []
-fv (num x)       = []
-fv (var x)       = x ∷ []
-fv (m1 +ₙ m2)    = (fv m1) ++ (fv m2)
-fv (if e1 then   e2 else  e3) = ((fv e1) ++ (fv e2)) ++ (fv e3)
-fv (e1 app  e2)  = (fv e1) ++ (fv e2)
-fv (fun x t e)   = (fv e) remove x 
+weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type} → HasType (Γ₁ ++ Γ) m tm → HasType (Γ₁ ++ (tu ∷ Γ)) (shift one (len Γ₁) m) tm
+weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
+weakening-2 {Γ} {Γ₁} {var x} (t-var p) | left p2  = {!!}
+weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2 = {!!}
+weakening-2 {Γ} {Γ₁} {m1 app m2} (t-app p1 p2) = t-app (weakening-2 {Γ} {Γ₁} {m1} p1) (weakening-2 {Γ} {Γ₁} {m2} p2) 
+weakening-2 {Γ} {Γ₁} {fun t m} p = {!!}
 
+
+
+weakening-1 : {Γ : Env} {m : Term} {t tx tu : Type} → HasType (tx ∷ Γ) m t → HasType (tx ∷ tu ∷ Γ) (shift one one m) t
+weakening-1 {Γ} {var x} p with x <? one
+weakening-1 {Γ} {var .zero} (t-var p) | left (base< .zero) = t-var p
+... | right p1   = {!!}
+weakening-1 {Γ} {m1 app m2} (t-app p1 p2) = t-app (weakening-1 p1) (weakening-1 p2)
+weakening-1 {Γ} {fun t m} (t-fun p) = {!!}
+
+weakening : {Γ : Env} {m : Term} {t t1 : Type} → HasType Γ m t → HasType (t1 ∷ Γ) (shift one zero m) t
+weakening {Γ} {var x} (t-var p) with x <? zero
+... | right p2 rewrite symm+ {x} {succ zero} = t-var p
+weakening (t-app p1 p2) = t-app (weakening p1) (weakening p2)
+weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-1 {Γ} {m} p)
+
+substitution-lemma : (Γ : Env) (t1 t : Type) (m s : Term) → HasType (t1 ∷ Γ) m t → HasType Γ s t1 → HasType Γ (shift-back one zero (subst zero (shift one zero s) m)) t
+substitution-lemma Γ t1 t (var x) s (t-var p1) p2 with x ≡? zero
+... | left pz rewrite pz | opt-eq p1 = {!!}
+... | right pnz = {!!}
+substitution-lemma Γ t1 t (_ app _) s (t-app p1 p3) p2 = {!!}
+substitution-lemma Γ t1 (Tarrow _ _) (fun _ _) s (t-fun p1) p2 = {!!}
+
+
+
+ev-ex-1 : ((fun Bool (var zero)) app (fun Bool (var zero))) ⇒ (fun Bool (var zero))
+ev-ex-1 = e-beta Bool (var zero) (fun Bool (var zero))
+            (v-fun Bool (var zero))
+
+
+
+-- ex-eval-1 : fun 
+
+
+{-
 data Env : Set
 
 Dom : Env → List {ℕ}
@@ -55,49 +136,17 @@ data EnvContains : ℕ → Type → Env → Set where
 -- Substitution
 -- occurences of the variable x are substituted with the term m in term t, producing a new term  
 subst : ℕ → Term → Term → Term
-subst x m true              = true
-subst x m false             = false
-subst x m (num n)           = num n
+subst x m true                                 = true
+subst x m false                                = false
+subst x m (num n)                           = num n
 subst x m (var y) with x ≡? y
 ... | left p = m           -- case x equals y
-... | right p = var y      -- case x not equals y
-subst x m (e1 +ₙ e2)        = (subst x m e1) +ₙ (subst x m e2)
-subst x m (if e1 then e2 else e3)  = if (subst x m e1) then (subst x m e2) else  (subst x m e3)
-subst x m (e1 app e2)              = (subst x m e1) app (subst x m e2)
-subst x m (fun y t e)              = fun z t (subst x m (subst y (var z) e)) where
+... | right p = var y    -- case x not equals y
+subst x m (e1 +ₙ e2)                      = (subst x m e1) +ₙ (subst x m e2)
+subst x m (if e1 then e2 else e3)    = if (subst x m e1) then (subst x m e2) else  (subst x m e3)
+subst x m (e1 app e2)                     = (subst x m e1) app (subst x m e2)
+subst x m (fun y t e)                        = fun z t (subst x m (subst y (var z) e)) where
   z = succ ( max (getMax (fv m)) (getMax (fv e)) )
-
-
-not-fv-e1+e2-not-fv-e1 : {y : ℕ} {e1 e2 : Term} → ¬ (y ∈ (fv (e1 +ₙ e2))) → ¬ (y ∈ (fv e1))
-not-fv-e1+e2-not-fv-e1 {y} {e1} {e2} p = not-in-concat-not-in-first y (fv e1) (fv e2) p
-
-not-fv-e1+e2-not-fv-e2 : {y : ℕ} {e1 e2 : Term} → ¬ (y ∈ (fv (e1 +ₙ e2))) → ¬ (y ∈ (fv e2))
-not-fv-e1+e2-not-fv-e2 {y} {e1} {e2} p = not-in-concat-not-in-second y (fv e1) (fv e2) p
-
-
-
-subst-eq : (x y : ℕ) (s e : Term) → ¬ (y ∈ fv e) → subst x s e ≡ subst y s (subst x (var y) e)
-subst-eq x y s true    p1 = refl
-subst-eq x y s false   p1 = refl
-subst-eq x y s (num n) p1 = refl
-
-subst-eq x y s (var z) p1' with x ≡? z
-... | left p1 with y ≡? y
-...         | left p2 = refl
-...         | right p2 = absurd (p2 refl)
-subst-eq x y s (var z) p1' | right p1 with y ≡? z
-...         | left p2 rewrite p2 = absurd (p1' (in-head z []))
-...         | right p2 = refl
-
-subst-eq x y s (e1 +ₙ e2) p1
-         rewrite subst-eq x y s e1 (not-fv-e1+e2-not-fv-e1 {y} {e1} {e2} p1)
-         | subst-eq x y s e2 (not-fv-e1+e2-not-fv-e2 {y} {e1} {e2} p1) = refl
-         
-subst-eq x y s (if e then e₁ else e₂) p1 = {!!}
-subst-eq x y s (e1 app e2) p1 = {!!}
-subst-eq x y s (fun z t e) p1 = {!!}
--- this last one can't be prooved actually
--- by definition 
 
 
 -- Typing rules
@@ -194,7 +243,6 @@ lemma-inversion-if-e3 (t-if p1 p2 p3) = p3
 lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type} → HasType Γ (var x) t → EnvContains x t Γ
 lemma-invertion-var (t-var p) = p     -- p is the proof that "Γ" contains "x"
 
-{-
 lemma-invertion-app : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (m1 app m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
 lemma-invertion-app (t-app {Γ} {m1} {m2} {t1} {t2} p1 p2) = exists t1 (and p1 p2)
 

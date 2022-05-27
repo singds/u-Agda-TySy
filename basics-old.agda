@@ -1,18 +1,11 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
-infixl 10 _+_
-infixl 9  _≡_
-
+--{-# OPTIONS --allow-unsolved-metas #-}
 
 data ⊥ : Set where
-
-data Opt : {A : Set} → Set where
-    none : {A : Set} → Opt {A}
-    some : {A : Set} → A → Opt {A}
 
 -- Negation
 ¬_ : Set → Set
 ¬ X = X → ⊥ 
+
 
 -- From a value of type ⊥ (bottom) I can derive whatever I want.
 -- Actually there are no values of type ⊥.
@@ -59,8 +52,6 @@ data ℕ : Set where
   zero : ℕ
   succ : ℕ → ℕ
 
-one = succ zero
-
 -- Congruence
 cong : {A B : Set} {x y : A} → (f : A → B) → (x ≡ y) → (f x ≡ f y)
 cong f refl = refl
@@ -99,17 +90,27 @@ _+_ : ℕ → ℕ → ℕ
 zero + b   = b
 succ a + b = succ (a + b)
 
-pred : ℕ → ℕ
-pred zero = zero
-pred (succ a) = a
+data List {A : Set} : Set where
+  []  : List {A}
+  _∷_ : (x : A) → (xs : List {A}) → List {A} 
 
-_-_ : ℕ → ℕ → ℕ
-a - zero = a
-a - (succ b) = (pred a) - b
+-- List concatenation
+_++_ : {A : Set} → List {A} → List {A} → List {A}
+[] ++ l2       = l2
+(x ∷ l1) ++ l2 = x ∷ (l1 ++ l2)
 
-symm+ : {x y : ℕ} → x + y ≡ y + x
-symm+ = {!!}
+-- Remove the given element from a list of integers
+_remove_ : List → (x : ℕ) → List
+[] remove x = []
+(x ∷ xs) remove y with x ≡? y
+... | left p = xs remove y                -- x equals y
+... | right p = x ∷ (xs remove y)      -- x not equals y
 
+
+-- The element x is in the list
+data _∈_ {A : Set} : (x : A) → List → Set where
+  in-head : (x : A) (xs : List) → x ∈ (x ∷ xs)
+  in-tail : (x y : A) (xs : List) → x ∈ xs → x ∈ (y ∷ xs)
 
 data _≤_ : ℕ → ℕ → Set where
   x≤x : (x : ℕ) → x ≤ x
@@ -176,16 +177,45 @@ succ x <? succ y with x <? y
 ... | left p = left (lemma-succ-<-succ x y p)
 ... | right p = right λ p1 → p (lemma-pred-< x y p1)
 
+-- Get the max value of a list
+getMax : List {ℕ} → ℕ
+getMax [] = zero
+getMax (x ∷ xs) with x ≤? (getMax xs)
+... | left p    = getMax xs
+... | right p  = x
+
 max : ℕ → ℕ → ℕ
 max a b with a ≤? b
 ... | left a≤b = b
 ... | right a>b = a
 
+-- xs ++ [] = xs
+lemma-list1 : {A : Set} (xs : List {A}) → (xs ++ []) ≡ xs
+lemma-list1 [] = refl
+lemma-list1 (x ∷ xs) = cong (λ y → x ∷ y) (lemma-list1 xs)
 
-opt-eq : {A : Set} {x y : A} → some x ≡ some y → x ≡ y
-opt-eq refl = refl
+lemma-in-not-first : {A : Set} (z x : A) (xs : List) → ¬ (z ∈ (x ∷ xs)) → ¬ (z ∈ xs)
+lemma-in-not-first z x xs p1 = λ p2 → p1 (in-tail z x xs p2)
 
-opt-eq1 : {A : Set} {x y : A} → x ≡ y → some x ≡ some y
-opt-eq1 refl = refl
+in-first-in-concat : {A : Set} (z : A) (xs : List) (ys : List) →  z ∈ xs → z ∈ (xs ++ ys)
+in-first-in-concat x (x ∷ xs) ys (in-head x xs) = in-head x (xs ++ ys)
+in-first-in-concat x (y ∷ xs) ys (in-tail x y xs p) = in-tail x y (xs ++ ys) (in-first-in-concat x xs ys p)
 
+in-second-in-concat : {A : Set} (z : A) (xs : List) (ys : List) →  z ∈ ys → z ∈ (xs ++ ys)
+in-second-in-concat z [] ys p = p
+in-second-in-concat z (x ∷ xs) ys p = in-tail z x (xs ++ ys) (in-second-in-concat z xs ys p)
 
+not-in-concat-not-in-first : {A : Set} (z : A) (xs : List) (ys : List) →  ¬ (z ∈ (xs ++ ys)) → ¬ (z ∈ xs)
+not-in-concat-not-in-first z xs ys p = λ inFirst → p (in-first-in-concat z xs ys inFirst)
+
+not-in-concat-not-in-second : {A : Set} (z : A) (xs : List) (ys : List) →  ¬ (z ∈ (xs ++ ys)) → ¬ (z ∈ ys)
+not-in-concat-not-in-second z xs ys p = λ inSecond → p (in-second-in-concat z xs ys inSecond)
+
+data Opt : {A : Set} → Set where
+    none : {A : Set} → Opt {A}
+    some : {A : Set} → A → Opt {A}
+
+get-index : {A : Set} → List {A} → ℕ → Opt {A}
+get-index [] n = none
+get-index (x ∷ xs) zero = some x
+get-index (x ∷ xs) (succ n) = get-index xs n

@@ -1,36 +1,62 @@
 open import basics
 
-
-
 -- Language types
 data Type : Set where
   Bool     : Type
   Nat      : Type
   Tarrow : Type → Type → Type
 
+_T=?_ : (t1 :  Type) → (t2 :  Type) → ((t1 ≡ t2) ⊎ (t1 ≢ t2))
+t1 T=? t2 = {!!}
+  
+
 -- Language terms
 data Term : Set where
-  true            : Term
-  false           : Term
-  num             : ℕ → Term                                    -- number
-  var             : ℕ → Term                                    -- variable
-  _+ₙ_            : Term → Term → Term                  -- sum between natural numbers
-  if_then_else_   :  Term → Term → Term → Term     -- if e1 then e1 else e3
-  _app_           : Term → Term → Term                 -- function application
-  fun             : ℕ → Type → Term → Term           -- labda abstraction
+  var     : ℕ → Term
+  _app_   : Term → Term → Term
+  fun     : Type → Term → Term
 
 
--- Get the free vriables of a term
-fv : Term → List {ℕ}
-fv true          = []
-fv false         = []
-fv (num x)       = []
-fv (var x)       = x ∷ []
-fv (m1 +ₙ m2)    = (fv m1) ++ (fv m2)
-fv (if e1 then   e2 else  e3) = ((fv e1) ++ (fv e2)) ++ (fv e3)
-fv (e1 app  e2)  = (fv e1) ++ (fv e2)
-fv (fun x t e)   = (fv e) remove x 
 
+data HasType : List {Type} → Term → Type → Set where
+  t-var   : {Γ : List {Type}} {x : ℕ} {t : Type} → (get-index Γ x) ≡ some t → HasType Γ (var x) t
+  t-app : {Γ : List {Type}} {e1 e2 : Term} {t1 t2 : Type} (p1 : HasType Γ e1 (Tarrow t1 t2)) (p2 : HasType Γ e2 t1) → HasType Γ (e1 app e2) t2
+  t-fun : {Γ : List {Type}} {t1 t2 : Type} {e1 : Term}  (p : HasType (t1 ∷  Γ) e1 t2) → HasType Γ (fun t1 e1) (Tarrow t1 t2)
+
+lemma-invertion-var : {Γ : List {Type}} {x : ℕ} {t : Type} → HasType Γ (var x) t → (get-index Γ x) ≡ some t
+lemma-invertion-var (t-var p) = p
+
+lemma-invertion-app : {Γ : List {Type}} {m1 m2 : Term} {t : Type} → HasType Γ (m1 app m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
+lemma-invertion-app (t-app {Γ} {m1} {m2} {t1} {t2} p1 p2) = exists t1 (p1 and p2)
+
+lemma-invertion-fun : {Γ : List {Type}} {m : Term} {t1 t : Type} → HasType Γ (fun t1 m) t → ∃ Type (λ t2 → (t ≡ (Tarrow t1 t2)) & HasType (t1 ∷ Γ) m t2)
+lemma-invertion-fun (t-fun {Γ} {t1} {t2} p) = exists t2 (refl and p)
+
+data Value : Term → Set where
+  v-fun   : (t : Type) (e : Term) →  Value (fun t e)
+
+shift : ℕ → ℕ → Term → Term
+shift d c (var x) with x <? c
+... | left p = var x
+... | right p = var (x + d)
+shift d c (e1 app e2) = (shift d c e1) app  (shift d c e2)
+shift d c (fun t e1) = fun t (shift d (succ c) e1)
+
+
+subst : ℕ → Term → Term → Term
+subst j s (var x) with x ≡? j
+... | left p = s
+... | right p = var x
+subst j s (e1 app e2) = (subst j s e1) app (subst j s e2)
+subst j s (fun t e1) = subst (succ j) (shift (succ zero) zero s) e1
+
+data _⇒_ : Term → Term → Set where
+  e-app1     : (m1 m1' m2 : Term) (p1 :  m1 ⇒ m1') → (m1 app m2) ⇒ (m1' app m2)
+  e-app2     : (v1 m2 m2' : Term) (p1 : Value v1) (p1 : m2 ⇒ m2') → (v1 app m2) ⇒ (v1 app m2')
+--  e-beta     :  (t : Type) (e1 v2 : Term) →  Value v2 → ((fun t e1) app v2) ⇒ shift -1 0 (subst zero (shift (succ zero) zero v2) e1)
+
+
+{-
 data Env : Set
 
 Dom : Env → List {ℕ}
@@ -55,49 +81,17 @@ data EnvContains : ℕ → Type → Env → Set where
 -- Substitution
 -- occurences of the variable x are substituted with the term m in term t, producing a new term  
 subst : ℕ → Term → Term → Term
-subst x m true              = true
-subst x m false             = false
-subst x m (num n)           = num n
+subst x m true                                 = true
+subst x m false                                = false
+subst x m (num n)                           = num n
 subst x m (var y) with x ≡? y
 ... | left p = m           -- case x equals y
-... | right p = var y      -- case x not equals y
-subst x m (e1 +ₙ e2)        = (subst x m e1) +ₙ (subst x m e2)
-subst x m (if e1 then e2 else e3)  = if (subst x m e1) then (subst x m e2) else  (subst x m e3)
-subst x m (e1 app e2)              = (subst x m e1) app (subst x m e2)
-subst x m (fun y t e)              = fun z t (subst x m (subst y (var z) e)) where
+... | right p = var y    -- case x not equals y
+subst x m (e1 +ₙ e2)                      = (subst x m e1) +ₙ (subst x m e2)
+subst x m (if e1 then e2 else e3)    = if (subst x m e1) then (subst x m e2) else  (subst x m e3)
+subst x m (e1 app e2)                     = (subst x m e1) app (subst x m e2)
+subst x m (fun y t e)                        = fun z t (subst x m (subst y (var z) e)) where
   z = succ ( max (getMax (fv m)) (getMax (fv e)) )
-
-
-not-fv-e1+e2-not-fv-e1 : {y : ℕ} {e1 e2 : Term} → ¬ (y ∈ (fv (e1 +ₙ e2))) → ¬ (y ∈ (fv e1))
-not-fv-e1+e2-not-fv-e1 {y} {e1} {e2} p = not-in-concat-not-in-first y (fv e1) (fv e2) p
-
-not-fv-e1+e2-not-fv-e2 : {y : ℕ} {e1 e2 : Term} → ¬ (y ∈ (fv (e1 +ₙ e2))) → ¬ (y ∈ (fv e2))
-not-fv-e1+e2-not-fv-e2 {y} {e1} {e2} p = not-in-concat-not-in-second y (fv e1) (fv e2) p
-
-
-
-subst-eq : (x y : ℕ) (s e : Term) → ¬ (y ∈ fv e) → subst x s e ≡ subst y s (subst x (var y) e)
-subst-eq x y s true    p1 = refl
-subst-eq x y s false   p1 = refl
-subst-eq x y s (num n) p1 = refl
-
-subst-eq x y s (var z) p1' with x ≡? z
-... | left p1 with y ≡? y
-...         | left p2 = refl
-...         | right p2 = absurd (p2 refl)
-subst-eq x y s (var z) p1' | right p1 with y ≡? z
-...         | left p2 rewrite p2 = absurd (p1' (in-head z []))
-...         | right p2 = refl
-
-subst-eq x y s (e1 +ₙ e2) p1
-         rewrite subst-eq x y s e1 (not-fv-e1+e2-not-fv-e1 {y} {e1} {e2} p1)
-         | subst-eq x y s e2 (not-fv-e1+e2-not-fv-e2 {y} {e1} {e2} p1) = refl
-         
-subst-eq x y s (if e then e₁ else e₂) p1 = {!!}
-subst-eq x y s (e1 app e2) p1 = {!!}
-subst-eq x y s (fun z t e) p1 = {!!}
--- this last one can't be prooved actually
--- by definition 
 
 
 -- Typing rules
@@ -194,7 +188,6 @@ lemma-inversion-if-e3 (t-if p1 p2 p3) = p3
 lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type} → HasType Γ (var x) t → EnvContains x t Γ
 lemma-invertion-var (t-var p) = p     -- p is the proof that "Γ" contains "x"
 
-{-
 lemma-invertion-app : {Γ : Env} {m1 m2 : Term} {t : Type} → HasType Γ (m1 app m2) t → ∃ Type (λ t1 → (HasType Γ m1 (Tarrow t1 t)) & (HasType Γ m2 t1))
 lemma-invertion-app (t-app {Γ} {m1} {m2} {t1} {t2} p1 p2) = exists t1 (and p1 p2)
 
