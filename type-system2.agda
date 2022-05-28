@@ -119,6 +119,21 @@ back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 =
         (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
 back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (x-notin-dec-succ-not-in-list' p2))
 
+
+
+type-preservation : {Γ : Env} {m m' : Term} {t : Type} → HasType Γ m t → m ⇒ m' → HasType Γ m' t
+type-preservation (t-app p1 p3) (e-app1 m1 m1' m2 p2) = t-app (type-preservation p1 p2) p3
+type-preservation (t-app p1 p3) (e-app2 v1 m2 m2' p2 p4) = t-app p1 (type-preservation p3 p4)
+type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 v2 x) =
+  back-one Γ t1 [] subst-term (substitution p1 (weakening p3)) {!!}
+  where
+  subst-term : Term
+  subst-term = subst zero (shift (succ zero) zero v2) e1
+
+-- HasType (t1 ∷ Γ) (subst zero (shift (succ zero) zero v2) e1) t2
+-- substitution {_} {_} {_} {_} {v2} {shift one zero v2}
+
+
 -- ROADMAP
 -- M{x:=N} is the substitution of the variable x with the term N
 --
@@ -147,13 +162,6 @@ substitution-lemma Γ t1 t (var x) s (t-var p1) p2 with x ≡? zero
 substitution-lemma Γ t1 t (_ app _) s (t-app p1 p3) p2 = {!!}
 substitution-lemma Γ t1 (Tarrow _ _) (fun _ _) s (t-fun p1) p2 = {!!}
 -}
-
-
-
-type-preservation : {Γ : Env} {m m' : Term} {t : Type} → HasType Γ m t → m ⇒ m' → HasType Γ m' t
-type-preservation (t-app p1 p3) (e-app1 m1 m1' m2 p2) = t-app (type-preservation p1 p2) p3
-type-preservation (t-app p1 p3) (e-app2 v1 m2 m2' p2 p4) = t-app p1 (type-preservation p3 p4)
-type-preservation (t-app p1 p3) (e-beta t e1 v2 x) = {!!}
 
 
 
