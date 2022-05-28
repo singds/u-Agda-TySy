@@ -67,8 +67,27 @@ cong f refl = refl
 symm : {A : Set} {x y : A} → x ≡ y → y ≡ x
 symm refl = refl
 
+trans : {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+trans refl q = q
+
 symm≢ : {A : Set} {x y : A} → x ≢ y → y ≢ x
 symm≢ p1 = λ p2 → p1 (symm p2)
+
+infix  3 _∎
+infixr 2 _≡⟨_⟩_ _≡⟨⟩_
+infix  1 begin_
+
+_≡⟨_⟩_ : {A : Set} {y z : A} → (x : A) → x ≡ y → y ≡ z → x ≡ z
+x ≡⟨ p ⟩ q = trans p q
+
+_≡⟨⟩_ : {A : Set} {y : A} → (x : A) → (q : x ≡ y) → x ≡ y
+x ≡⟨⟩ q = q
+
+_∎ : {A : Set} → (x : A) → x ≡ x
+x ∎ = refl
+
+begin_ : {A : Set} {x y : A} → x ≡ y → x ≡ y
+begin p = p
 
 -- If the successors of two numbers are equals, then the two numbers are equal
 succ-eq-pred-eq : {x y : ℕ} → succ x ≡ succ y → x ≡ y
@@ -143,6 +162,9 @@ lemma-pred-≤ x y (x≤succ (succ x) y p) = lemma-pred1-≤ x y p
 lemma-succ-> : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
 lemma-succ-> x y x>y = λ p → x>y (lemma-pred-≤ x y p)
 
+lemma-pred-> : (x : ℕ) (y : ℕ) → (succ x) > (succ y) → x > y
+lemma-pred-> x y p = λ p1 → p (lemma-succ-≤ x y p1)
+
 -- Zero is always less than a number of the form succ something
 lemma-zero-<-succ : (x : ℕ) → zero < succ x
 lemma-zero-<-succ zero = base< zero
@@ -182,6 +204,18 @@ lemma-≥-1 : (x : ℕ) → (y : ℕ)
           → x ≥ y
 lemma-≥-1 x y p = λ p1 → p (step< x y p1)
 
+lemma-pred-<-2 : (x : ℕ) (y : ℕ) → succ x < succ y → x < succ y
+lemma-pred-<-2 x .(succ x) (base< .(succ x)) = step< x (succ x) (base< x)
+lemma-pred-<-2 x y (step< .(succ x) .y p) = {!!}
+
+lemma-pred-<-3 : (x : ℕ) (y : ℕ) → succ x < y → (x < y)
+lemma-pred-<-3 x (succ y) p = lemma-pred-<-2 x y p
+
+lemma-≥-2 : (x : ℕ) → (y : ℕ)
+          → x ≥ y
+          → succ x ≥ y
+lemma-≥-2 x y p = λ p1 → p (lemma-pred-<-3 x y p1)
+
 lemma->-1 : (x : ℕ) → (y : ℕ)
           → x ≥ succ y
           → x > zero
@@ -218,6 +252,12 @@ opt-eq1 : {A : Set} {x y : A} → x ≡ y → some x ≡ some y
 opt-eq1 refl = refl
 
 
-
 x-ge-x-neq-x-gt : {x n : ℕ} → x ≥ n → x ≢ n → x > n
-x-ge-x-neq-x-gt p1 p2 = {!   !}
+x-ge-x-neq-x-gt p1 p2 = {!!}
+
+eq-minus-succ : (a : ℕ) (b : ℕ)
+  → a ≥ b
+  → succ (a - b) ≡ succ a - b
+eq-minus-succ a        zero     p1 = refl
+eq-minus-succ zero     (succ b) p1 = absurd (p1 (lemma-zero-<-succ b))
+eq-minus-succ (succ a) (succ b) p1 = eq-minus-succ a b (lemma-pred-≥-pred a b p1)

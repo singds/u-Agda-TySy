@@ -105,8 +105,8 @@ weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type}
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
 weakening-2 {Γ} {Γ₁} (t-var p1)        | left  p2
                                      = t-var (pos-first-pos-concat {_} {Γ₁} (get-index-in-first p2 p1))
-weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2
-  rewrite symm+ x (succ zero)        = t-var {!!}  -- should be easy to proove
+weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var p) | right p2
+  rewrite symm+ x (succ zero) | eq-index-mid Γ₁ Γ tu x p2  = t-var p
 weakening-2 (t-app p1 p2)            = t-app (weakening-2 p1) (weakening-2 p2) 
 weakening-2 (t-fun p)                = t-fun (weakening-2 p)
 

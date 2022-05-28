@@ -124,35 +124,64 @@ xs++[]≡xs : {A : Set} → (xs : List {A}) → xs ++ [] ≡ xs
 xs++[]≡xs [] = refl
 xs++[]≡xs (x ∷ xs) = cong (λ list → x ∷ list) (xs++[]≡xs xs)
 
-index-too-big : {A : Set} {xs : List {A}}
-                → (n : ℕ)
-                → n ≥ len xs
-                → get-index xs n ≡ none
-index-too-big {A} {[]} zero p1         = refl
-index-too-big {A} {x ∷ xs} zero p1     = absurd (p1 (lemma-zero-<-succ (len xs)))
-index-too-big {A} {[]} (succ n) p1     = refl
-index-too-big {A} {x ∷ xs} (succ n) p1 = index-too-big n (lemma-pred-≥-pred n (len xs) p1)
+eq-index-too-big : {A : Set}
+  → (xs : List {A})
+  → (n : ℕ)
+  → n ≥ len xs
+  → get-index xs n ≡ none
+eq-index-too-big []       zero     p1   = refl
+eq-index-too-big (x ∷ xs) zero     p1   = absurd (p1 (lemma-zero-<-succ (len xs)))
+eq-index-too-big []       (succ n) p1   = refl
+eq-index-too-big (x ∷ xs) (succ n) p1   = eq-index-too-big xs n (lemma-pred-≥-pred n (len xs) p1)
 
 
-index-not-first : {A : Set} {x : A} {xs : List {A}} {i : ℕ} {v : Opt {A}}
-                  → get-index (x ∷ xs) i ≡ v
-                  → i > zero
-                  → get-index xs (pred i) ≡ v
-index-not-first {A} {x} {xs} {zero} p1 p2 = absurd (p2 (x≤x zero))
-index-not-first {A} {x} {xs} {succ i} p1 p2 = p1 
+eq-index-not-first : {A : Set}
+  → (x : A)
+  → (xs : List {A})
+  → (i : ℕ)
+  → i > zero
+  → get-index (x ∷ xs) i ≡ get-index xs (pred i)
+eq-index-not-first x xs zero p1    = absurd (p1 (x≤x zero))
+eq-index-not-first x xs (succ i) p1  = refl
 
 
-get-index-concat : {A : Set} {xs ys : List {A}} {v : Opt {A}} {i : ℕ}
-                   → get-index (xs ++ ys) i ≡ v
-                   → i ≥ len xs
-                   → get-index (ys) (i - (len xs)) ≡ v
-get-index-concat {A} {[]} {ys} {_} {i} p1 p2     = p1
-get-index-concat {A} {x ∷ xs} {ys} {_} {i} p1 p2 = get-index-concat {_} {xs} {ys} {_} {pred i} (index-not-first p1 (lemma->-1 i (len xs) p2)) (lemma-pred-≥ i (len xs) p2)
+eq-index-concat : {A : Set}
+  → (xs : List {A})
+  → (ys : List {A})
+  → (i : ℕ)
+  → i ≥ len xs
+  → get-index (xs ++ ys) i ≡ get-index (ys) (i - (len xs))
+eq-index-concat []       ys i p1     = refl
+eq-index-concat (x ∷ xs) ys i p1 = begin
+  get-index (x ∷ (xs ++ ys)) i      ≡⟨ eq-index-not-first x (xs ++ ys) i (lemma->-1 i (len xs) p1) ⟩
+  get-index (xs ++ ys) (pred i)     ≡⟨ eq-index-concat xs ys (pred i) (lemma-pred-≥ i (len xs) p1) ⟩
+  get-index (ys) ((pred i) - (len xs)) ∎
 
 
-get-index-lemma : {A : Set} {xs ys : List {A}} {v y : A} {i : ℕ}
-                  → get-index (xs ++ ys) i ≡ some v
-                  → i ≥ len xs
-                  → get-index (xs ++ (y ∷ ys)) (succ i) ≡ some v
-get-index-lemma {_} {xs} {[]} p1 p2 = {!!}
-get-index-lemma {_} {xs} {x ∷ ys} p1 p2 = {!!}
+eq-list-add : {A : Set}
+  → (x : A)
+  → (xs : List {A})
+  → (i : ℕ)
+  → get-index (xs) i ≡ get-index (x ∷ xs) (succ i)
+eq-list-add x xs i = refl
+
+
+eq-index-mid : {A : Set}
+  → (xs : List {A})
+  → (ys : List {A})
+  → (y : A)
+  → (i : ℕ)
+  → i ≥ len xs
+  → get-index (xs ++ ys) i ≡ get-index (xs ++ (y ∷ ys)) (succ i)
+eq-index-mid xs ys y i p1 = begin
+  get-index (xs ++ ys) i                  ≡⟨ eq-index-concat xs ys i p1  ⟩
+  get-index ys (i - len(xs))              ≡⟨⟩
+  get-index (y ∷ ys) (succ (i - len(xs))) ≡⟨ cong (λ k → get-index (y ∷ ys) k) (eq-minus-succ i (len xs) p1) ⟩
+  get-index (y ∷ ys) ((succ i) - len(xs)) ≡⟨ symm (eq-index-concat xs (y ∷ ys) (succ i) (lemma-≥-2 i (len xs) p1) ) ⟩
+  get-index (xs ++ (y ∷ ys)) (succ i) ∎
+
+-- get-index (xs ++ ys) i
+-- ≡ get-index ys (i - len(xs))                 by eq-index-concat
+-- ≡ get-index (y ∷ ys) (succ (i - len(xs)))    by definition of get-index
+-- ≡ get-index (y ∷ ys) ((succ i) - len(xs))    by eq-minus-succ
+-- ≡ get-index (xs ++ (y ∷ ys)) (succ i)        by symm eq-index-concat
