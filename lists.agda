@@ -89,6 +89,9 @@ not-the-first {v} {x} p1 with v ≡? x
 ... | left  p rewrite p = absurd (p1 (in-head x []))
 ... | right p = p
 
+is-the-first : {v x : ℕ} → v ∈ (x ∷ []) → v ≡ x
+is-the-first {x} {x} (in-head x []) = refl
+
 index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A} (n : ℕ) → get-index (xs ++ (x ∷ ys)) n ≡ some v → n > len(xs) → get-index (xs ++ ys) (pred n) ≡ some v
 index-rem-from-center = {!   !}
 
