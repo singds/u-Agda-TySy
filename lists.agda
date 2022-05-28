@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import basics
 
 infixr 11 _∷_
@@ -82,3 +83,11 @@ pos-first-pos-concat {A} {x ∷ xs} {ys} {succ n} p1 = pos-first-pos-concat {A} 
 dec-all : List {ℕ} → List {ℕ}
 dec-all [] = []
 dec-all (x ∷ xs) = pred x ∷ dec-all xs
+
+not-the-first : {v x : ℕ} → ¬ (v ∈ (x ∷ [])) → v ≢ x
+not-the-first {v} {x} p1 with v ≡? x
+... | left  p rewrite p = absurd (p1 (in-head x []))
+... | right p = p
+
+index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A} (n : ℕ) → get-index (xs ++ (x ∷ ys)) n ≡ some v → n > len(xs) → get-index (xs ++ ys) (pred n) ≡ some v
+index-rem-from-center = {!   !}

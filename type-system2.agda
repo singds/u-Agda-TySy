@@ -81,39 +81,51 @@ weakening-2 {Γ} {[]} {fun t m} (t-fun p) = t-fun (weakening-2 {Γ} {t ∷ []} {
 weakening-2 {Γ} {ty ∷ Γ₁} {fun t m} (t-fun p) = t-fun {!!}
 
 
--- Γ ⊢ m : t ⇒ Γ,t1 ⊢ shift 1 0 m : t
-weakening : {Γ : Env} {m : Term} {t t1 : Type} → HasType Γ m t → HasType (t1 ∷ Γ) (shift one zero m) t
+-- Γ ⊢ m : t   ⇒   Γ,tu ⊢ ↑ 1 0 m : t
+weakening : {Γ : Env} {m : Term} {t tu : Type} → HasType Γ m t → HasType (tu ∷ Γ) (shift one zero m) t
 weakening {Γ} {var x} (t-var p) with x <? zero
 ... | right p2 rewrite symm+ x (succ zero) = t-var p
 weakening (t-app p1 p2) = t-app (weakening p1) (weakening p2)
 weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-2 {Γ} {tx ∷ []} {m} p)
 
--- ROADMAP
--- Γ ⊢ N : S                        ⇒ Γ,S ⊢ N : S         by weakening
--- Γ,S ⊢ M : T     Γ,S ⊢ N : S      ⇒ Γ,S ⊢ M{0:=S} : T   by substitution
--- Γ,S ⊢ M : T     0 ∉ fv(M)        ⇒ Γ ⊢ shift -1 M : T  by back shifting
+-- Γ,S,Γ₁ ⊢ M : T     Γ,S,Γ₁ ⊢ N : S      ⇒ Γ,S ⊢ M{len(Γ₁):=S} : T
 substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term} → HasType (Γ₁ ++ (S ∷ Γ)) M T → HasType (Γ₁ ++ (S ∷ Γ)) N S → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
 substitution {Γ} {Γ₁} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
 ... | left  p  = {!!}         -- S and T are actually equal types easy to end
 ... | right p  = t-var p1
 substitution (t-app p1 p2) p3 = t-app (substitution p1 p3) (substitution p2 p3)
 substitution {Γ} {Γ₁} {S} {_} {M} {N} (t-fun {_} {t1} {t2} {e} p1) p2 = t-fun (substitution {Γ} {t1 ∷ Γ₁} {S} {t2} {e} p1 (weakening {Γ₁ ++ (S ∷ Γ)} {N} p2))
--- HasType ((t1 ∷ Γ₁) ++ (S ∷ Γ))) (subst (succ (len Γ₁)) (shift one zero N) e1) t2
--- HasType (t1 ∷ (Γ₁ ++ (S ∷ Γ))) (shift one zero N) S
--- HasType (Γ₁ ++ (S ∷ Γ)) N S
 
 fv : Term → List {ℕ}
 fv (var x) = x ∷ []
 fv (m1 app m2) = (fv m1) ++ (fv m2)
 fv (fun t m) = dec-all ((fv m) remove zero)
 
+-- Γ,S,Γ₁ ⊢ M : T     len(Γ₁) ∉ fv(M)     ⇒ Γ,Γ₁ ⊢ ↑ -1 len(Γ₁) M : T
+back-one : {t : Type} (Γ : Env) (tu : Type) (Γ₁ : Env) (m : Term) → HasType (Γ₁ ++ (tu ∷ Γ)) m t → ¬ (len (Γ₁) ∈ (fv m)) → HasType (Γ₁ ++ Γ) (shift-back one (len Γ₁) m) t
+back-one Γ tu Γ₁ (var x) (t-var p1) p2 with x <? len(Γ₁)
+... | left  p = t-var (pos-first-pos-concat {_} {Γ₁} {Γ} (get-index-in-first p p1))
+... | right p = t-var (index-rem-from-center x p1 x->-len)
+    where
+    x-not-len : x ≢ len(Γ₁)
+    x-not-len = symm≢  (not-the-first p2)
 
-back-one : {Γ : Env} {tu t : Type} {m : Term} → HasType (tu ∷ Γ) m t → ¬ (zero ∈ (fv m)) → HasType Γ (shift-back one zero m) t
-back-one (t-var p) p3 = {!!}
-back-one (t-app p1 p2) p3 = {!!}
-back-one (t-fun p) p3 = {!!}
+    x->-len : x > len(Γ₁)
+    x->-len = x-ge-x-neq-x-gt p x-not-len
 
+back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 = 
+    t-app
+        (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
+        (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
+back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 {!   !})
+-- HasType (tx ∷ (Γ₁ ++ Γ)) (shift-back one (succ (len Γ₁)) m) t2
 
+-- ROADMAP
+-- M{x:=N} is the substitution of the variable x with the term N
+--
+-- Γ ⊢ N : S                              ⇒ Γ,S ⊢ N : S                   weakening
+-- Γ,S,Γ₁ ⊢ M : T     Γ,S,Γ₁ ⊢ N : S      ⇒ Γ,S ⊢ M{len(Γ₁):=S} : T       substitution
+-- Γ,S,Γ₁ ⊢ M : T     len(Γ₁) ∉ fv(M)     ⇒ Γ,Γ₁ ⊢ ↑ -1 len(Γ₁) M : T     back one
 
 
 

@@ -1,5 +1,4 @@
 {-# OPTIONS --allow-unsolved-metas #-}
-
 infixl 10 _+_
 infixl 9  _≡_
 
@@ -189,3 +188,6 @@ opt-eq1 : {A : Set} {x y : A} → x ≡ y → some x ≡ some y
 opt-eq1 refl = refl
 
 
+
+x-ge-x-neq-x-gt : {x n : ℕ} → x ≥ n → x ≢ n → x > n
+x-ge-x-neq-x-gt p1 p2 = {!   !}
