@@ -108,7 +108,7 @@ weakening-2 {Γ} {Γ₁} {m} {tm} {tu} (t-var {_} {i} p1)
         rewrite eq-idx-in-first Γ₁ Γ i p2
               | eq-idx-in-first-in-concat Γ₁ (tu ∷ Γ) i p2 = t-var p1
 weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var p) | right p2
-  rewrite symm+ x (succ zero) | eq-index-mid Γ₁ Γ tu x p2  = t-var p
+  rewrite symm+ x (succ zero) | eq-idx-add-one-mid Γ₁ Γ tu x p2  = t-var p
 weakening-2 (t-app p1 p2)            = t-app (weakening-2 p1) (weakening-2 p2) 
 weakening-2 (t-fun p)                = t-fun (weakening-2 p)
 
@@ -155,7 +155,8 @@ back-one : {t : Type} (Γ : Env) (tu : Type) (Γ₁ : Env) (m : Term)
 back-one Γ tu Γ₁ (var x) (t-var p1) p2 with x <? len(Γ₁)
 ... | left  p
       rewrite eq-idx-in-first Γ₁ (tu ∷ Γ) x p
-            | eq-idx-in-first-in-concat Γ₁ Γ x p = t-var p1 
+            | eq-idx-in-first-in-concat Γ₁ Γ x p = t-var p1
+-- TODO use eq-idx-second-rem-from-center instead of index-rem-from-center
 ... | right p = t-var (index-rem-from-center x p1 x->-len)
     where
     x-not-len : x ≢ len(Γ₁)
@@ -168,7 +169,7 @@ back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 =
     t-app
         (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
         (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
-back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (x-notin-dec-succ-not-in-list' p2))
+back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (notin-dec-not-succ-in-list' p2))
 
 
 

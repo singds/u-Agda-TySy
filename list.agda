@@ -60,6 +60,10 @@ decAll [] = []
 decAll (x ∷ xs) = pred x ∷ decAll xs
 
 
+
+-- FACTS -----------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+
 -- x ∉ (x ∷ xs)   ⇒   z ∉ xs
 not-in-list-not-in-tail : {A : Set} (z x : A) (xs : List) → z ∉ (x ∷ xs) → z ∉ xs
 not-in-list-not-in-tail z x xs p1 = λ p2 → p1 (in-tail z x xs p2)
@@ -82,6 +86,39 @@ not-in-concat-not-in-first z xs ys p = λ inFirst → p (in-first-in-concat z xs
 not-in-concat-not-in-second : {A : Set} (z : A) (xs : List) (ys : List) →  z ∉ (xs ++ ys) → z ∉ ys
 not-in-concat-not-in-second z xs ys p = λ inSecond → p (in-second-in-concat z xs ys inSecond)
 
+-- x+1 ∈ xs   ⇒   x ∈ (decAll xs)
+succ-in-list-in-dec : {x : ℕ} {xs : List {ℕ}}
+    → succ x ∈ xs
+    → x ∈ (decAll xs)
+succ-in-list-in-dec {x} (in-head (succ _) xs)           = in-head x (decAll xs)
+succ-in-list-in-dec {x} {xs} (in-tail (succ _) y xs' p) = in-tail x (pred y) (decAll xs') (succ-in-list-in-dec p)
+
+-- x ∉ (decAll xs)   ⇒   x+1 ∉ xs
+notin-dec-not-succ-in-list : {x : ℕ} {xs : List {ℕ}}
+    → x ∉ (decAll xs)
+    → succ x ∉ xs
+notin-dec-not-succ-in-list p = λ p1 → p (succ-in-list-in-dec p1)
+
+-- x+1 ∈ xs   ⇒   x ∈ (decAll (xs \ 0))
+succ-in-list-in-dec' : {x : ℕ} {xs : List {ℕ}}
+    → succ x ∈ xs
+    → x ∈ (decAll (xs remove zero))
+succ-in-list-in-dec' {x} {.(succ x ∷ xs)} (in-head .(succ x) xs) = in-head x (decAll (xs remove zero))
+succ-in-list-in-dec' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? zero 
+... | left  p1 = succ-in-list-in-dec' p
+... | right p1 = in-tail x (pred y) (decAll (xs remove zero)) (succ-in-list-in-dec' p)
+
+-- x ∉ (decAll (xs \ 0))   ⇒   x+1 ∉ xs
+notin-dec-not-succ-in-list' : {x : ℕ} {xs : List {ℕ}}
+    → x ∉ (decAll (xs remove zero))
+    → succ x ∉ xs
+notin-dec-not-succ-in-list' p = λ p1 → p (succ-in-list-in-dec' p1) 
+
+-- xs ++ [] ≡ xs
+xs++[]≡xs : {A : Set} → (xs : List {A}) → xs ++ [] ≡ xs
+xs++[]≡xs [] = refl
+xs++[]≡xs (x ∷ xs) = cong (λ list → x ∷ list) (xs++[]≡xs xs)
+
 
 
 -- EQUALITIES ------------------------------------------------------------------
@@ -91,6 +128,23 @@ not-in-concat-not-in-second z xs ys p = λ inSecond → p (in-second-in-concat z
 eq-list-concat-empty : {A : Set} → (xs : List {A}) → (xs ++ []) ≡ xs
 eq-list-concat-empty [] = refl
 eq-list-concat-empty (x ∷ xs) = cong (λ y → x ∷ y) (eq-list-concat-empty xs)
+
+-- v ∉ (x ∷ [])   ⇒   v ≢ x
+-- If v is not in a list with the single element x, then v ≢ x.
+neq-the-first : {v x : ℕ}    → v ∉ (x ∷ [])    → v ≢ x
+neq-the-first {v} {x} p1 with v ≡? x
+... | left  p rewrite p = absurd (p1 (in-head x []))
+... | right p           = p
+
+-- (x ∷ xs)[i] ≡ x[i - 1]    when i > 0
+eq-idx-not-first : {A : Set}
+  → (x : A)
+  → (xs : List {A})
+  → (i : ℕ)
+  → i > zero
+  → getIdx (x ∷ xs) i ≡ getIdx xs (pred i)
+eq-idx-not-first x xs zero p1    = absurd (p1 (x≤x zero))
+eq-idx-not-first x xs (succ i) p1  = refl
 
 -- (xs ++ ys)[i] ≡ xs[i]   when i < len(xs)      (for any ys)
 eq-idx-in-first : {A : Set}
@@ -112,67 +166,7 @@ eq-idx-in-first-in-concat : {A : Set}
 eq-idx-in-first-in-concat (x ∷ xs) ys zero     p1  = refl
 eq-idx-in-first-in-concat (x ∷ xs) ys (succ i) p1  = eq-idx-in-first-in-concat xs ys i (lemma-pred-< i (len xs) p1)
 
--- v ∉ (x ∷ [])   ⇒   v ≢ x
--- If v is not in a list with the single element x, then v ≢ x.
-neq-the-first : {v x : ℕ}    → v ∉ (x ∷ [])    → v ≢ x
-neq-the-first {v} {x} p1 with v ≡? x
-... | left  p rewrite p = absurd (p1 (in-head x []))
-... | right p           = p
-
-index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A}
-                        → (n : ℕ)
-                        → getIdx (xs ++ (x ∷ ys)) n ≡ some v
-                        → n > len(xs)
-                        → getIdx (xs ++ ys) (pred n) ≡ some v
-index-rem-from-center = {!   !}
-
-x-in-dec-succ-in-list : {x : ℕ} {xs : List {ℕ}} → succ x ∈ xs → x ∈ (decAll xs)
-x-in-dec-succ-in-list {x} (in-head (succ _) xs)     = in-head x (decAll xs)
-x-in-dec-succ-in-list {x} {xs} (in-tail (succ _) y xs' p) = in-tail x (pred y) (decAll xs') (x-in-dec-succ-in-list p)
-
-x-notin-dec-succ-not-in-list : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (decAll xs)) → ¬ (succ x ∈ xs)
-x-notin-dec-succ-not-in-list p = λ p1 → p (x-in-dec-succ-in-list p1)
-
-
-x-in-dec-succ-in-list' : {x : ℕ} {xs : List {ℕ}}
-                         → succ x ∈ xs
-                         → x ∈ (decAll (xs remove zero))
-x-in-dec-succ-in-list' {x} {.(succ x ∷ xs)} (in-head .(succ x) xs) = in-head x (decAll (xs remove zero))
-x-in-dec-succ-in-list' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? zero 
-... | left  p1 = x-in-dec-succ-in-list' p
-... | right p1 = in-tail x (pred y) (decAll (xs remove zero)) (x-in-dec-succ-in-list' p)
-
-x-notin-dec-succ-not-in-list' : {x : ℕ} {xs : List {ℕ}}
-                                → ¬ (x ∈ (decAll (xs remove zero)))
-                                → ¬ (succ x ∈ xs)
-x-notin-dec-succ-not-in-list' p = λ p1 → p (x-in-dec-succ-in-list' p1) 
-
-xs++[]≡xs : {A : Set} → (xs : List {A}) → xs ++ [] ≡ xs
-xs++[]≡xs [] = refl
-xs++[]≡xs (x ∷ xs) = cong (λ list → x ∷ list) (xs++[]≡xs xs)
-
-eq-index-too-big : {A : Set}
-  → (xs : List {A})
-  → (n : ℕ)
-  → n ≥ len xs
-  → getIdx xs n ≡ none
-eq-index-too-big []       zero     p1   = refl
-eq-index-too-big (x ∷ xs) zero     p1   = absurd (p1 (lemma-zero-<-succ (len xs)))
-eq-index-too-big []       (succ n) p1   = refl
-eq-index-too-big (x ∷ xs) (succ n) p1   = eq-index-too-big xs n (lemma-pred-≥-pred n (len xs) p1)
-
-
-
-eq-index-not-first : {A : Set}
-  → (x : A)
-  → (xs : List {A})
-  → (i : ℕ)
-  → i > zero
-  → getIdx (x ∷ xs) i ≡ getIdx xs (pred i)
-eq-index-not-first x xs zero p1    = absurd (p1 (x≤x zero))
-eq-index-not-first x xs (succ i) p1  = refl
-
-
+-- (xs ++ ys)[i] ≡ ys[i - len xs]    when i ≥ len xs
 eq-idx-in-second : {A : Set}
   → (xs : List {A})
   → (ys : List {A})
@@ -180,36 +174,74 @@ eq-idx-in-second : {A : Set}
   → i ≥ len xs
   → getIdx (xs ++ ys) i ≡ getIdx (ys) (i - (len xs))
 eq-idx-in-second []       ys i p1     = refl
-eq-idx-in-second (x ∷ xs) ys i p1 = begin
-  getIdx (x ∷ (xs ++ ys)) i      ≡⟨ eq-index-not-first x (xs ++ ys) i (lemma->-1 i (len xs) p1) ⟩
-  getIdx (xs ++ ys) (pred i)     ≡⟨ eq-idx-in-second xs ys (pred i) (lemma-pred-≥ i (len xs) p1) ⟩
+eq-idx-in-second (x ∷ xs) ys i p1     = begin
+  getIdx (x ∷ (xs ++ ys)) i         ≡⟨ eq-idx-not-first x (xs ++ ys) i (lemma->-1 i (len xs) p1) ⟩
+  getIdx (xs ++ ys) (pred i)        ≡⟨ eq-idx-in-second xs ys (pred i) (lemma-pred-≥ i (len xs) p1) ⟩
   getIdx (ys) ((pred i) - (len xs)) ∎
 
+-- (xs ++ (x ∷ ys))[i] ≡ (xs ++ ys)[i - 1]    when i > len xs
+eq-idx-second-rem-from-center : {A : Set}
+    → (xs : List {A})
+    → (x : A)
+    → (ys : List {A})
+    → (i : ℕ)
+    → i > len(xs)
+    → getIdx (xs ++ (x ∷ ys)) i ≡ getIdx (xs ++ ys) (pred i)
+eq-idx-second-rem-from-center xs x ys i p = {!!}
+-- getIdx (xs ++ (x ∷ ys)) i
+-- ≡ getIdx (x ∷ ys) (i - len xs)   by eq-idx-in-second
+-- ≡ getIdx ys (pred (i - len xs))  by eq-not-first
+-- ≡ getIdx ys (pred i - len xs)    by eq-minus-succ
+-- ≡ ?
 
-eq-list-add : {A : Set}
-  → (x : A)
+-- xs[i] ≡ none      when i ≥ len xs
+eq-idx-too-big : {A : Set}
   → (xs : List {A})
   → (i : ℕ)
-  → getIdx (xs) i ≡ getIdx (x ∷ xs) (succ i)
-eq-list-add x xs i = refl
+  → i ≥ len xs
+  → getIdx xs i ≡ none
+eq-idx-too-big []       zero     p1   = refl
+eq-idx-too-big (x ∷ xs) zero     p1   = absurd (p1 (lemma-zero-<-succ (len xs)))
+eq-idx-too-big []       (succ i) p1   = refl
+eq-idx-too-big (x ∷ xs) (succ i) p1   = eq-idx-too-big xs i (lemma-pred-≥-pred i (len xs) p1)
 
-
-eq-index-mid : {A : Set}
+-- (xs ++ ys)[i] ≡ (xs ++ (y ∷ ys))[i+1]      when x ≥ len xs
+eq-idx-add-one-mid : {A : Set}
   → (xs : List {A})
   → (ys : List {A})
   → (y : A)
   → (i : ℕ)
   → i ≥ len xs
   → getIdx (xs ++ ys) i ≡ getIdx (xs ++ (y ∷ ys)) (succ i)
-eq-index-mid xs ys y i p1 = begin
+eq-idx-add-one-mid xs ys y i p1 = begin
   getIdx (xs ++ ys) i                  ≡⟨ eq-idx-in-second xs ys i p1  ⟩
   getIdx ys (i - len(xs))              ≡⟨⟩
   getIdx (y ∷ ys) (succ (i - len(xs))) ≡⟨ cong (λ k → getIdx (y ∷ ys) k) (eq-minus-succ i (len xs) p1) ⟩
   getIdx (y ∷ ys) ((succ i) - len(xs)) ≡⟨ symm (eq-idx-in-second xs (y ∷ ys) (succ i) (lemma-≥-2 i (len xs) p1) ) ⟩
   getIdx (xs ++ (y ∷ ys)) (succ i) ∎
-
 -- getIdx (xs ++ ys) i
 -- ≡ getIdx ys (i - len(xs))                 by eq-idx-in-second
 -- ≡ getIdx (y ∷ ys) (succ (i - len(xs)))    by definition of getIdx
 -- ≡ getIdx (y ∷ ys) ((succ i) - len(xs))    by eq-minus-succ
 -- ≡ getIdx (xs ++ (y ∷ ys)) (succ i)        by symm eq-idx-in-second
+
+-- xs[i] ≡ (x ∷ xs)[i+1]
+eq-idx-add-one : {A : Set}
+  → (x : A)
+  → (xs : List {A})
+  → (i : ℕ)
+  → getIdx (xs) i ≡ getIdx (x ∷ xs) (succ i)
+eq-idx-add-one x xs i = refl
+
+
+
+
+-- TODO remove this, keep only eq-idx-second-rem-from-center
+index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A}
+    → (n : ℕ)
+    → getIdx (xs ++ (x ∷ ys)) n ≡ some v
+    → n > len(xs)
+    → getIdx (xs ++ ys) (pred n) ≡ some v
+index-rem-from-center = {!   !}
+
+
