@@ -111,3 +111,11 @@ x-in-dec-succ-in-list' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? 
 
 x-notin-dec-succ-not-in-list' : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (dec-all (xs remove zero))) → ¬ (succ x ∈ xs)
 x-notin-dec-succ-not-in-list' p = λ p1 → p (x-in-dec-succ-in-list' p1) 
+
+
+get-index-lemma : {A : Set} {xs ys : List {A}} {v y : A} {i : ℕ}
+                  → get-index (xs ++ ys) i ≡ some v
+                  → i ≥ len xs
+                  → get-index (xs ++ (y ∷ ys)) (succ i) ≡ some v
+get-index-lemma {_} {xs} {[]} p1 p2 = {!!}
+get-index-lemma {_} {xs} {x ∷ ys} p1 p2 = {!!}

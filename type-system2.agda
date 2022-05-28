@@ -103,12 +103,12 @@ weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type}
         → HasType (Γ₁ ++ (tu ∷ Γ)) (shift one (len Γ₁) m) tm
 
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
-weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var p1) | left  p2 = t-var (pos-first-pos-concat {Type} {Γ₁} {tu ∷ Γ} (get-index-in-first p2 p1))
+weakening-2 {Γ} {Γ₁} (t-var p1)        | left  p2
+                                     = t-var (pos-first-pos-concat {_} {Γ₁} (get-index-in-first p2 p1))
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) | right p2
-  rewrite symm+ x (succ zero) = t-var {!!}  -- should be easy to proove
-weakening-2 {Γ} {Γ₁} {m1 app m2} (t-app p1 p2) = t-app (weakening-2 {Γ} {Γ₁} {m1} p1) (weakening-2 {Γ} {Γ₁} {m2} p2) 
-weakening-2 {Γ} {[]} {fun t m} (t-fun p) = t-fun (weakening-2 {Γ} {t ∷ []} {m} p)
-weakening-2 {Γ} {ty ∷ Γ₁} {fun tx m} (t-fun p) = t-fun (weakening-2 {Γ} {tx ∷ ty ∷ Γ₁} {m} p)
+  rewrite symm+ x (succ zero)        = t-var {!!}  -- should be easy to proove
+weakening-2 (t-app p1 p2)            = t-app (weakening-2 p1) (weakening-2 p2) 
+weakening-2 (t-fun p)                = t-fun (weakening-2 p)
 
 
 -- Γ ⊢ m : t
@@ -119,8 +119,8 @@ weakening : {Γ : Env} {m : Term} {t tu : Type}
 
 weakening {Γ} {var x} (t-var p) with x <? zero
 ... | right p2 rewrite symm+ x (succ zero) = t-var p
-weakening (t-app p1 p2) = t-app (weakening p1) (weakening p2)
-weakening {Γ} {fun tx m} (t-fun p) = t-fun (weakening-2 {Γ} {tx ∷ []} {m} p)
+weakening (t-app p1 p2)                    = t-app (weakening p1) (weakening p2)
+weakening {Γ} {fun tx m} (t-fun p)         = t-fun (weakening-2 {Γ} {tx ∷ []} {m} p)
 
 
 -- Γ,S,Γ₁ ⊢ M : T
@@ -132,10 +132,11 @@ substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
         → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
 
 substitution {Γ} {Γ₁} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
-... | left  p  = {!!}         -- S and T are actually equal types easy to end
-... | right p  = t-var p1
-substitution (t-app p1 p2) p3 = t-app (substitution p1 p3) (substitution p2 p3)
-substitution {Γ} {Γ₁} {S} {_} {M} {N} (t-fun {_} {t1} {t2} {e} p1) p2 = t-fun (substitution {Γ} {t1 ∷ Γ₁} {S} {t2} {e} p1 (weakening {Γ₁ ++ (S ∷ Γ)} {N} p2))
+... | left  p                  = {!!}         -- S and T are actually equal types easy to end
+... | right p                  = t-var p1
+substitution (t-app p1 p2) p3  = t-app (substitution p1 p3) (substitution p2 p3)
+substitution (t-fun p1) p2     = t-fun (substitution p1 (weakening p2))
+
 
 
 -- Γ,S,Γ₁ ⊢ M : T
@@ -161,6 +162,7 @@ back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 =
         (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
         (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
 back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (x-notin-dec-succ-not-in-list' p2))
+
 
 
 {-
