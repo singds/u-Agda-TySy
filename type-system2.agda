@@ -131,8 +131,11 @@ substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
         → HasType (Γ₁ ++ (S ∷ Γ)) N S
         → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
 
-substitution {Γ} {Γ₁} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
-... | left  p                  = {!!}         -- S and T are actually equal types easy to end
+substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
+... | left  p
+      rewrite eq-index-concat Γ₁ (S ∷ Γ) x (x≡y-to-x≥y x (len Γ₁) p)
+            | x-x≡0 x (len Γ₁) p
+            | opt-eq p1 = p2
 ... | right p                  = t-var p1
 substitution (t-app p1 p2) p3  = t-app (substitution p1 p3) (substitution p2 p3)
 substitution (t-fun p1) p2     = t-fun (substitution p1 (weakening p2))
@@ -175,7 +178,12 @@ no-fv-instance x N (fun t M) p = {!!}
 -}
 
 
-type-preservation : {Γ : Env} {m m' : Term} {t : Type} → HasType Γ m t → m ⇒ m' → HasType Γ m' t
+
+
+type-preservation : {Γ : Env} {m m' : Term} {t : Type}
+  → HasType Γ m t
+  → m ⇒ m'
+  → HasType Γ m' t
 type-preservation (t-app p1 p3) (e-app1 m1 m1' m2 p2) = t-app (type-preservation p1 p2) p3
 type-preservation (t-app p1 p3) (e-app2 v1 m2 m2' p2 p4) = t-app p1 (type-preservation p3 p4)
 type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 v2 x) =

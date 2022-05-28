@@ -221,6 +221,19 @@ lemma->-1 : (x : ℕ) → (y : ℕ)
           → x > zero
 lemma->-1 x y p = {!!}
 
+0<0-to-⊥ : zero < zero → ⊥
+0<0-to-⊥ ()
+
+x<x-to-⊥ : (x : ℕ) → x < x → ⊥
+x<x-to-⊥ zero ()
+x<x-to-⊥ (succ x) = λ p → x<x-to-⊥ x (lemma-pred-< x x p)
+
+x≡y-to-x≥y : (x y : ℕ) → x ≡ y → x ≥ y
+x≡y-to-x≥y x x refl = λ p → x<x-to-⊥ x p
+
+x-x≡0 : (x y : ℕ) → x ≡ y → (x - y) ≡ zero
+x-x≡0 zero     zero     refl = refl
+x-x≡0 (succ x) (succ x) refl = x-x≡0 x x refl
 
 
 _≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
@@ -261,3 +274,4 @@ eq-minus-succ : (a : ℕ) (b : ℕ)
 eq-minus-succ a        zero     p1 = refl
 eq-minus-succ zero     (succ b) p1 = absurd (p1 (lemma-zero-<-succ b))
 eq-minus-succ (succ a) (succ b) p1 = eq-minus-succ a b (lemma-pred-≥-pred a b p1)
+
