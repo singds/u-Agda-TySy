@@ -91,3 +91,20 @@ not-the-first {v} {x} p1 with v ≡? x
 
 index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A} (n : ℕ) → get-index (xs ++ (x ∷ ys)) n ≡ some v → n > len(xs) → get-index (xs ++ ys) (pred n) ≡ some v
 index-rem-from-center = {!   !}
+
+x-in-dec-succ-in-list : {x : ℕ} {xs : List {ℕ}} → succ x ∈ xs → x ∈ (dec-all xs)
+x-in-dec-succ-in-list {x} (in-head (succ _) xs)     = in-head x (dec-all xs)
+x-in-dec-succ-in-list {x} {xs} (in-tail (succ _) y xs' p) = in-tail x (pred y) (dec-all xs') (x-in-dec-succ-in-list p)
+
+x-notin-dec-succ-not-in-list : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (dec-all xs)) → ¬ (succ x ∈ xs)
+x-notin-dec-succ-not-in-list p = λ p1 → p (x-in-dec-succ-in-list p1)
+
+
+x-in-dec-succ-in-list' : {x : ℕ} {xs : List {ℕ}} → succ x ∈ xs → x ∈ (dec-all (xs remove zero))
+x-in-dec-succ-in-list' {x} {.(succ x ∷ xs)} (in-head .(succ x) xs) = in-head x (dec-all (xs remove zero))
+x-in-dec-succ-in-list' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? zero 
+... | left  p1 = x-in-dec-succ-in-list' p
+... | right p1 = in-tail x (pred y) (dec-all (xs remove zero)) (x-in-dec-succ-in-list' p)
+
+x-notin-dec-succ-not-in-list' : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (dec-all (xs remove zero))) → ¬ (succ x ∈ xs)
+x-notin-dec-succ-not-in-list' p = λ p1 → p (x-in-dec-succ-in-list' p1) 

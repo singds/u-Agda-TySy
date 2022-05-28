@@ -117,8 +117,7 @@ back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 =
     t-app
         (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
         (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
-back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 {!   !})
--- HasType (tx ∷ (Γ₁ ++ Γ)) (shift-back one (succ (len Γ₁)) m) t2
+back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 = t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (x-notin-dec-succ-not-in-list' p2))
 
 -- ROADMAP
 -- M{x:=N} is the substitution of the variable x with the term N
