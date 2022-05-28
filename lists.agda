@@ -4,8 +4,8 @@ open import basics
 infixr 11 _∷_
 
 data List {A : Set} : Set where
-  []  : List {A}
-  _∷_ : (x : A) → (xs : List {A}) → List {A}
+  []  : List
+  _∷_ : (x : A) → (xs : List {A}) → List
 
 -- List concatenation
 _++_ : {A : Set} → List {A} → List {A} → List {A}
@@ -92,7 +92,11 @@ not-the-first {v} {x} p1 with v ≡? x
 is-the-first : {v x : ℕ} → v ∈ (x ∷ []) → v ≡ x
 is-the-first {x} {x} (in-head x []) = refl
 
-index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A} (n : ℕ) → get-index (xs ++ (x ∷ ys)) n ≡ some v → n > len(xs) → get-index (xs ++ ys) (pred n) ≡ some v
+index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A}
+                        → (n : ℕ)
+                        → get-index (xs ++ (x ∷ ys)) n ≡ some v
+                        → n > len(xs)
+                        → get-index (xs ++ ys) (pred n) ≡ some v
 index-rem-from-center = {!   !}
 
 x-in-dec-succ-in-list : {x : ℕ} {xs : List {ℕ}} → succ x ∈ xs → x ∈ (dec-all xs)
@@ -103,14 +107,47 @@ x-notin-dec-succ-not-in-list : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (dec-al
 x-notin-dec-succ-not-in-list p = λ p1 → p (x-in-dec-succ-in-list p1)
 
 
-x-in-dec-succ-in-list' : {x : ℕ} {xs : List {ℕ}} → succ x ∈ xs → x ∈ (dec-all (xs remove zero))
+x-in-dec-succ-in-list' : {x : ℕ} {xs : List {ℕ}}
+                         → succ x ∈ xs
+                         → x ∈ (dec-all (xs remove zero))
 x-in-dec-succ-in-list' {x} {.(succ x ∷ xs)} (in-head .(succ x) xs) = in-head x (dec-all (xs remove zero))
 x-in-dec-succ-in-list' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? zero 
 ... | left  p1 = x-in-dec-succ-in-list' p
 ... | right p1 = in-tail x (pred y) (dec-all (xs remove zero)) (x-in-dec-succ-in-list' p)
 
-x-notin-dec-succ-not-in-list' : {x : ℕ} {xs : List {ℕ}} → ¬ (x ∈ (dec-all (xs remove zero))) → ¬ (succ x ∈ xs)
+x-notin-dec-succ-not-in-list' : {x : ℕ} {xs : List {ℕ}}
+                                → ¬ (x ∈ (dec-all (xs remove zero)))
+                                → ¬ (succ x ∈ xs)
 x-notin-dec-succ-not-in-list' p = λ p1 → p (x-in-dec-succ-in-list' p1) 
+
+xs++[]≡xs : {A : Set} → (xs : List {A}) → xs ++ [] ≡ xs
+xs++[]≡xs [] = refl
+xs++[]≡xs (x ∷ xs) = cong (λ list → x ∷ list) (xs++[]≡xs xs)
+
+index-too-big : {A : Set} {xs : List {A}}
+                → (n : ℕ)
+                → n ≥ len xs
+                → get-index xs n ≡ none
+index-too-big {A} {[]} zero p1         = refl
+index-too-big {A} {x ∷ xs} zero p1     = absurd (p1 (lemma-zero-<-succ (len xs)))
+index-too-big {A} {[]} (succ n) p1     = refl
+index-too-big {A} {x ∷ xs} (succ n) p1 = index-too-big n (lemma-pred-≥-pred n (len xs) p1)
+
+
+index-not-first : {A : Set} {x : A} {xs : List {A}} {i : ℕ} {v : Opt {A}}
+                  → get-index (x ∷ xs) i ≡ v
+                  → i > zero
+                  → get-index xs (pred i) ≡ v
+index-not-first {A} {x} {xs} {zero} p1 p2 = absurd (p2 (x≤x zero))
+index-not-first {A} {x} {xs} {succ i} p1 p2 = p1 
+
+
+get-index-concat : {A : Set} {xs ys : List {A}} {v : Opt {A}} {i : ℕ}
+                   → get-index (xs ++ ys) i ≡ v
+                   → i ≥ len xs
+                   → get-index (ys) (i - (len xs)) ≡ v
+get-index-concat {A} {[]} {ys} {_} {i} p1 p2     = p1
+get-index-concat {A} {x ∷ xs} {ys} {_} {i} p1 p2 = get-index-concat {_} {xs} {ys} {_} {pred i} (index-not-first p1 (lemma->-1 i (len xs) p2)) (lemma-pred-≥ i (len xs) p2)
 
 
 get-index-lemma : {A : Set} {xs ys : List {A}} {v y : A} {i : ℕ}

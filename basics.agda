@@ -143,18 +143,12 @@ lemma-pred-≤ x y (x≤succ (succ x) y p) = lemma-pred1-≤ x y p
 lemma-succ-> : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
 lemma-succ-> x y x>y = λ p → x>y (lemma-pred-≤ x y p)
 
-_≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
-zero ≤? zero = left (x≤x zero)
-zero ≤? succ y = left (lemma-zero-≤ (succ y))
-succ x ≤? zero = right (λ ())
-succ x ≤? succ y with x ≤? y
-... | left x≤y = left (lemma-succ-≤ x y x≤y)
-... | right x>y = right (lemma-succ-> x y x>y)
-
+-- Zero is always less than a number of the form succ something
 lemma-zero-<-succ : (x : ℕ) → zero < succ x
 lemma-zero-<-succ zero = base< zero
 lemma-zero-<-succ (succ x) = step< zero (succ x) (lemma-zero-<-succ x)
 
+-- If x < y, then (x + 1) < (y + 1)
 lemma-succ-<-succ : (x : ℕ) → (y : ℕ) → x < y → (succ x) < (succ y)
 lemma-succ-<-succ x (succ x) (base< x) = base< (succ x)
 lemma-succ-<-succ x (succ y) (step< x y p) = step< (succ x) (succ y) (lemma-succ-<-succ x y p)
@@ -166,6 +160,42 @@ lemma-succ-< x (succ y) (step< (succ x) y p) = step< x y (lemma-succ-< x y p)
 lemma-pred-< : (x : ℕ) → (y : ℕ) → (succ x) < (succ y) → x < y
 lemma-pred-< x (succ x) (base< (succ x)) = base< x
 lemma-pred-< x y (step< (succ x) y p) = lemma-succ-< x y p
+
+lemma-pred-≥-pred : (x : ℕ) → (y : ℕ) → (succ x) ≥ (succ y) → x ≥ y
+lemma-pred-≥-pred x y p = λ p1 → p (lemma-succ-<-succ x y p1)
+
+
+lemma-pred-<' : (x : ℕ) → (y : ℕ)
+                → pred x < y
+                → x < succ y
+lemma-pred-<' zero .(succ zero) (base< .zero) = step< zero (succ zero) (base< zero)
+lemma-pred-<' (succ x) .(succ x) (base< .x) = base< (succ x)
+lemma-pred-<' x .(succ y) (step< .(pred x) y p)    = step< x (succ y) (lemma-pred-<' x y p)
+
+lemma-pred-≥ : (x : ℕ) → (y : ℕ)
+             → x ≥ succ (y)
+             → pred x ≥ y
+lemma-pred-≥ x y p = λ p1 → p (lemma-pred-<' x y p1)
+
+lemma-≥-1 : (x : ℕ) → (y : ℕ)
+          → x ≥ succ y
+          → x ≥ y
+lemma-≥-1 x y p = λ p1 → p (step< x y p1)
+
+lemma->-1 : (x : ℕ) → (y : ℕ)
+          → x ≥ succ y
+          → x > zero
+lemma->-1 x y p = {!!}
+
+
+
+_≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
+zero ≤? zero = left (x≤x zero)
+zero ≤? succ y = left (lemma-zero-≤ (succ y))
+succ x ≤? zero = right (λ ())
+succ x ≤? succ y with x ≤? y
+... | left x≤y = left (lemma-succ-≤ x y x≤y)
+... | right x>y = right (lemma-succ-> x y x>y)
 
 _<?_ : (x : ℕ) → (y : ℕ) → ((x < y) ⊎ (x ≥ y))
 zero <? zero = right (λ ())
