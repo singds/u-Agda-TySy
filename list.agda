@@ -144,7 +144,7 @@ eq-idx-not-first : {A : Set}
   → (i : ℕ)
   → i > zero
   → getIdx (x ∷ xs) i ≡ getIdx xs (pred i)
-eq-idx-not-first x xs zero p1    = absurd (p1 (x≤x zero))
+eq-idx-not-first x xs zero p1    = absurd (p1 (base≤ zero))
 eq-idx-not-first x xs (succ i) p1  = refl
 
 -- (xs ++ ys)[i] ≡ xs[i]   when i < len(xs)      (for any ys)
@@ -155,7 +155,7 @@ eq-idx-in-first : {A : Set}
     → i < len xs
     → getIdx (xs ++ ys) i ≡ getIdx xs i
 eq-idx-in-first (x ∷ xs) ys zero     p1  = refl
-eq-idx-in-first (x ∷ xs) ys (succ i) p1  = eq-idx-in-first xs ys i (lemma-pred-< i (len xs) p1)
+eq-idx-in-first (x ∷ xs) ys (succ i) p1  = eq-idx-in-first xs ys i (x+1<y+1-to-x<y i (len xs) p1)
 
 -- xs[i] ≡ (xs ++ ys)[i]   when i < len(xs)      (for any ys)
 eq-idx-in-first-in-concat : {A : Set}
@@ -165,7 +165,7 @@ eq-idx-in-first-in-concat : {A : Set}
     → i < len xs
     → getIdx xs i ≡ getIdx (xs ++ ys) i
 eq-idx-in-first-in-concat (x ∷ xs) ys zero     p1  = refl
-eq-idx-in-first-in-concat (x ∷ xs) ys (succ i) p1  = eq-idx-in-first-in-concat xs ys i (lemma-pred-< i (len xs) p1)
+eq-idx-in-first-in-concat (x ∷ xs) ys (succ i) p1  = eq-idx-in-first-in-concat xs ys i (x+1<y+1-to-x<y i (len xs) p1)
 
 -- (xs ++ ys)[i] ≡ ys[i - len xs]    when i ≥ len xs
 eq-idx-in-second : {A : Set}
@@ -176,8 +176,8 @@ eq-idx-in-second : {A : Set}
   → getIdx (xs ++ ys) i ≡ getIdx (ys) (i - (len xs))
 eq-idx-in-second []       ys i p1     = refl
 eq-idx-in-second (x ∷ xs) ys i p1     = begin
-  getIdx (x ∷ (xs ++ ys)) i         ≡⟨ eq-idx-not-first x (xs ++ ys) i (lemma->-1 i (len xs) p1) ⟩
-  getIdx (xs ++ ys) (pred i)        ≡⟨ eq-idx-in-second xs ys (pred i) (lemma-pred-≥ i (len xs) p1) ⟩
+  getIdx (x ∷ (xs ++ ys)) i         ≡⟨ eq-idx-not-first x (xs ++ ys) i (x≥y+1-to-x≥0 i (len xs) p1) ⟩
+  getIdx (xs ++ ys) (pred i)        ≡⟨ eq-idx-in-second xs ys (pred i) (x≥y+1-to-x-1≥y i (len xs) p1) ⟩
   getIdx (ys) ((pred i) - (len xs)) ∎
 
 -- (xs ++ (x ∷ ys))[i] ≡ (xs ++ ys)[i - 1]    when i > len xs
@@ -202,9 +202,9 @@ eq-idx-too-big : {A : Set}
   → i ≥ len xs
   → getIdx xs i ≡ none
 eq-idx-too-big []       zero     p1   = refl
-eq-idx-too-big (x ∷ xs) zero     p1   = absurd (p1 (lemma-zero-<-succ (len xs)))
+eq-idx-too-big (x ∷ xs) zero     p1   = absurd (p1 (0<x+1 (len xs)))
 eq-idx-too-big []       (succ i) p1   = refl
-eq-idx-too-big (x ∷ xs) (succ i) p1   = eq-idx-too-big xs i (lemma-pred-≥-pred i (len xs) p1)
+eq-idx-too-big (x ∷ xs) (succ i) p1   = eq-idx-too-big xs i (x+1≥y+1-to-x≥y i (len xs) p1)
 
 -- (xs ++ ys)[i] ≡ (xs ++ (y ∷ ys))[i+1]      when x ≥ len xs
 eq-idx-add-one-mid : {A : Set}
@@ -218,7 +218,7 @@ eq-idx-add-one-mid xs ys y i p1 = begin
   getIdx (xs ++ ys) i                  ≡⟨ eq-idx-in-second xs ys i p1  ⟩
   getIdx ys (i - len(xs))              ≡⟨⟩
   getIdx (y ∷ ys) (succ (i - len(xs))) ≡⟨ cong (λ k → getIdx (y ∷ ys) k) (eq-minus-succ i (len xs) p1) ⟩
-  getIdx (y ∷ ys) ((succ i) - len(xs)) ≡⟨ symm (eq-idx-in-second xs (y ∷ ys) (succ i) (lemma-≥-2 i (len xs) p1) ) ⟩
+  getIdx (y ∷ ys) ((succ i) - len(xs)) ≡⟨ symm (eq-idx-in-second xs (y ∷ ys) (succ i) (x≥y-to-x+1≥y i (len xs) p1) ) ⟩
   getIdx (xs ++ (y ∷ ys)) (succ i) ∎
 -- getIdx (xs ++ ys) i
 -- ≡ getIdx ys (i - len(xs))                 by eq-idx-in-second

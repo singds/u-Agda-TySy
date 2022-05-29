@@ -137,7 +137,7 @@ substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
 substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
 ... | left  p
       rewrite eq-idx-in-second Γ₁ (S ∷ Γ) x (x≡y-to-x≥y x (len Γ₁) p)
-            | x-x≡0 x (len Γ₁) p
+            | x≡y-to-x-y≡0 x (len Γ₁) p
             | eq-opt-some-to-val p1 = p2
 ... | right p                  = t-var p1
 substitution (t-app p1 p2) p3  = t-app (substitution p1 p3) (substitution p2 p3)
@@ -164,7 +164,7 @@ back-one Γ tu Γ₁ (var x) (t-var p1) p2 with x <? len(Γ₁)
     x-not-len = symm≢  (neq-the-first p2)
 
     x->-len : x > len(Γ₁)
-    x->-len = x-ge-x-neq-x-gt p x-not-len
+    x->-len = x≥y-and-x≢y-to-x>y p x-not-len
 
 back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 = 
     t-app

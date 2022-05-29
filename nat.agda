@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- {-# OPTIONS --allow-unsolved-metas #-}
 open import basic
 
 infixl 10 _+_
@@ -12,8 +12,8 @@ data ℕ : Set where
   succ : ℕ → ℕ
 
 data _≤_ : ℕ → ℕ → Set where
-  x≤x : (x : ℕ) → x ≤ x
-  x≤succ : (x : ℕ) → (y : ℕ)  → x ≤ y → x ≤ (succ y)
+  base≤ : (x : ℕ) → x ≤ x
+  step≤ : (x : ℕ) → (y : ℕ)  → x ≤ y → x ≤ (succ y)
 
 _>_ : ℕ → ℕ → Set
 x > y = ¬ (x ≤ y)
@@ -45,20 +45,143 @@ _-_ : ℕ → ℕ → ℕ
 a - zero     = a
 a - (succ b) = (pred a) - b
 
+x+0≡x : (x : ℕ) → x + zero ≡ x
+x+0≡x zero     = refl
+x+0≡x (succ x) = cong succ (x+0≡x x)
 
 symm+ : (x y : ℕ) → x + y ≡ y + x
-symm+ = {!!}
+symm+ x zero     = x+0≡x x
+symm+ zero     (succ y) = cong succ (symm (x+0≡x y))
+symm+ (succ x) (succ y) = begin
+  succ (x + succ y)   ≡⟨ cong succ (symm+ x (succ y))  ⟩
+  succ (succ y + x)   ≡⟨⟩
+  succ (succ (y + x)) ≡⟨ cong (λ v → succ (succ v)) (symm+ y x) ⟩
+  succ (succ (x + y)) ≡⟨⟩
+  succ (succ x + y)   ≡⟨ cong succ (symm+ (succ x) y) ⟩
+  succ (y + succ x) ∎
+
+-- succ (x + succ y)
+-- ≡ succ (succ y + x)      by simm+
+-- ≡ succ (succ (y + x))    by def of sum
+-- ≡ succ (succ (x + y))    by simm+
+-- ≡ succ (succ x + y)      by def of sum
+-- ≡ succ (y + succ x)      by symm+
 
 
 
 
 -- If the successors of two numbers are equals, then the two numbers are equal
 -- x+1 ≡ y+1   ⇒   x ≡ y
-eq-plus-one-lr : {x y : ℕ} → succ x ≡ succ y → x ≡ y
-eq-plus-one-lr refl = refl
+x+1≡x+1-to-x≡y : {x y : ℕ} → succ x ≡ succ y → x ≡ y
+x+1≡x+1-to-x≡y refl = refl
 
--- 
--- Comparator for natual numbers.
+-- Zero is always less than a number of the form succ something.
+0<x+1 : (x : ℕ) → zero < succ x
+0<x+1 zero = base< zero
+0<x+1 (succ x) = step< zero (succ x) (0<x+1 x)
+
+-- x < y   ⇒   (x+1) < (y+1)
+x<y-to-x+1<y+1 : (x : ℕ) (y : ℕ) → x < y → (succ x) < (succ y)
+x<y-to-x+1<y+1 x (succ x) (base< x) = base< (succ x)
+x<y-to-x+1<y+1 x (succ y) (step< x y p) = step< (succ x) (succ y) (x<y-to-x+1<y+1 x y p)
+
+-- (x+1) < y   ⇒   x < y
+x+1<y-to-x<y : (x : ℕ) (y : ℕ) → (succ x) < y → x < y
+x+1<y-to-x<y x (succ (succ x)) (base< (succ x)) = step< x (succ x) (base< x)
+x+1<y-to-x<y x (succ y) (step< (succ x) y p)    = step< x y (x+1<y-to-x<y x y p)
+
+-- (x+1) < (y+1)   ⇒   x < y
+x+1<y+1-to-x<y : (x : ℕ) (y : ℕ) → (succ x) < (succ y) → x < y
+x+1<y+1-to-x<y x (succ x) (base< (succ x)) = base< x
+x+1<y+1-to-x<y x y (step< (succ x) y p)    = x+1<y-to-x<y x y p
+
+-- 0 ≤ x    for any x
+0≤x : (x : ℕ) → zero ≤ x
+0≤x zero     = base≤ zero
+0≤x (succ x) = step≤ zero x (0≤x x)
+
+-- x ≤ y   ⇒   (x+1) ≤ (y+1)
+x≤y-to-x+1≤y+1 : (x : ℕ) (y : ℕ) → x ≤ y → (succ x) ≤ (succ y)
+x≤y-to-x+1≤y+1 x x (base≤ x)            = base≤ (succ x)
+x≤y-to-x+1≤y+1 x (succ y) (step≤ x y p) = step≤ (succ x) (succ y) (x≤y-to-x+1≤y+1 x y p)
+
+-- (x+1) ≤ y   ⇒   x ≤ y
+x+1≤y-to-x≤y : (x : ℕ) (y : ℕ) → succ x ≤ y → x ≤ y
+x+1≤y-to-x≤y x (succ x) (base≤ (succ x))     = step≤ x x (base≤ x)
+x+1≤y-to-x≤y x (succ y) (step≤ (succ x) y p) = step≤ x y (x+1≤y-to-x≤y x y p)
+
+-- (x+1) ≤ (y+1)   ⇒   x ≤ y
+x+1≤y+1-to-x≤y : (x : ℕ) (y : ℕ) → (succ x) ≤ (succ y) → x ≤ y
+x+1≤y+1-to-x≤y x x (base≤ (succ x))     = base≤ x
+x+1≤y+1-to-x≤y x y (step≤ (succ x) y p) = x+1≤y-to-x≤y x y p
+
+-- x > y   ⇒   (x+1) > (y+1)
+x>y-to-x+1>y+1 : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
+x>y-to-x+1>y+1 x y x>y = λ p → x>y (x+1≤y+1-to-x≤y x y p)
+
+-- (x+1) > (y+1)   ⇒   x > y
+x+1>y+1-to-x>y : (x : ℕ) (y : ℕ) → (succ x) > (succ y) → x > y
+x+1>y+1-to-x>y x y p = λ p1 → p (x≤y-to-x+1≤y+1 x y p1)
+
+-- (x+1) ≥ (y+1)   ⇒   x ≥ y
+x+1≥y+1-to-x≥y : (x : ℕ) (y : ℕ) → (succ x) ≥ (succ y) → x ≥ y
+x+1≥y+1-to-x≥y x y p = λ p1 → p (x<y-to-x+1<y+1 x y p1)
+
+-- x-1 < y   ⇒   x < y+1
+x-1<y-to-x<y+1 : (x : ℕ) (y : ℕ) → pred x < y → x < succ y
+x-1<y-to-x<y+1 zero .(succ zero) (base< .zero)      = step< zero (succ zero) (base< zero)
+x-1<y-to-x<y+1 (succ x) .(succ x) (base< .x)        = base< (succ x)
+x-1<y-to-x<y+1 x .(succ y) (step< .(pred x) y p)    = step< x (succ y) (x-1<y-to-x<y+1 x y p)
+
+-- x ≥ y+1   ⇒   x-1 ≥ y
+x≥y+1-to-x-1≥y : (x : ℕ) (y : ℕ) → x ≥ succ (y) → pred x ≥ y
+x≥y+1-to-x-1≥y x y p = λ p1 → p (x-1<y-to-x<y+1 x y p1)
+
+-- x ≥ y+1   ⇒   x ≥ y
+x≥y+1-to-x≥y : (x : ℕ) (y : ℕ) → x ≥ succ y → x ≥ y
+x≥y+1-to-x≥y x y p = λ p1 → p (step< x y p1)
+
+-- x+1 < y   ⇒   x < y+1
+x+1<y-to-x<y+1 : (x y : ℕ) → succ x < y → x < succ y
+x+1<y-to-x<y+1 x .(succ (succ x)) (base< .(succ x)) = step< x (succ (succ x)) (step< x (succ x) (base< x))
+x+1<y-to-x<y+1 x .(succ y) (step< .(succ x) y p)    = step< x (succ y) (x+1<y-to-x<y+1 x y p)
+
+-- x+1 < y+1   ⇒   x < y+1
+x+1<y+1-to-x<y+1 : (x : ℕ) (y : ℕ) → succ x < succ y → x < succ y
+x+1<y+1-to-x<y+1 x .(succ x) (base< .(succ x))  = step< x (succ x) (base< x)
+x+1<y+1-to-x<y+1 x y (step< (succ x) y p)       = x+1<y-to-x<y+1 x y p
+
+-- x ≥ y   ⇒   x+1 ≥ y
+x≥y-to-x+1≥y : (x : ℕ) → (y : ℕ) → x ≥ y → succ x ≥ y
+x≥y-to-x+1≥y x y p = λ p1 → p (x+1<y-to-x<y x y p1)
+
+-- 0 < 0 is absurd
+0<0-to-⊥ : zero < zero → ⊥
+0<0-to-⊥ ()
+
+-- x < x is absurd
+x<x-to-⊥ : (x : ℕ) → x < x → ⊥
+x<x-to-⊥ zero ()
+x<x-to-⊥ (succ x) = λ p → x<x-to-⊥ x (x+1<y+1-to-x<y x x p)
+
+-- x+1 > 0   for any x
+x+1>0 : (x : ℕ) → succ x > zero
+x+1>0 zero     = λ ()
+x+1>0 (succ x) = λ ()
+
+-- x ≥ y+1   ⇒   x > zero
+x≥y+1-to-x≥0 : (x : ℕ) → (y : ℕ) → x ≥ succ y → x > zero
+x≥y+1-to-x≥0 zero     y p = absurd (p (0<x+1 y))
+x≥y+1-to-x≥0 (succ x) y p = x+1>0 x
+
+x≡y-to-x≥y : (x y : ℕ) → x ≡ y → x ≥ y
+x≡y-to-x≥y x x refl = λ p → x<x-to-⊥ x p
+
+x≡y-to-x-y≡0 : (x y : ℕ) → x ≡ y → (x - y) ≡ zero
+x≡y-to-x-y≡0 zero     zero     refl = refl
+x≡y-to-x-y≡0 (succ x) (succ x) refl = x≡y-to-x-y≡0 x x refl
+
+-- Equality test for natural numbers.
 -- Given two numbers it provides either a proof that those number are equals or
 -- a proof that those numbers are not equal.
 _≡?_ : (x : ℕ) → (y : ℕ) → ((x ≡ y) ⊎ (x ≢ y))
@@ -67,141 +190,46 @@ zero     ≡? (succ y)   = right (λ ())
 (succ x) ≡? zero       = right (λ ())
 (succ x) ≡? (succ y) with x ≡? y
 ... | left  p          = left (cong succ p)
-... | right p          = right λ p1 → p (eq-plus-one-lr p1)
-
-
--- The comparison of an element with itself always results in a proof of equality.
--- Comparing x with x, you can't get a proof that x ≢ x
-x≡x : (x : ℕ) → ((x ≡? x) ≡ left refl)
-x≡x zero = refl
-x≡x (succ x) with x ≡? x
-x≡x (succ x) | left refl = refl
-... | right p = absurd (p refl)
-
-
-
-lemma-zero-≤ : (x : ℕ) → zero ≤ x
-lemma-zero-≤ zero = x≤x zero
-lemma-zero-≤ (succ x) = x≤succ zero x (lemma-zero-≤ x)
-
-lemma-succ-≤ : (x : ℕ) (y : ℕ) → x ≤ y → (succ x) ≤ (succ y)
-lemma-succ-≤ x x (x≤x x) = x≤x (succ x)
-lemma-succ-≤ x (succ y) (x≤succ x y p) = x≤succ (succ x) (succ y) (lemma-succ-≤ x y p)
-
-lemma-pred1-≤ : (x : ℕ) (y : ℕ) → succ x ≤ y → x ≤ y
-lemma-pred1-≤ x (succ x) (x≤x (succ x)) = x≤succ x x (x≤x x)
-lemma-pred1-≤ x (succ y) (x≤succ (succ x) y p) = x≤succ x y (lemma-pred1-≤ x y p)
-
-lemma-pred-≤ : (x : ℕ) (y : ℕ) → (succ x) ≤ (succ y) → x ≤ y
-lemma-pred-≤ x x (x≤x (succ x)) = x≤x x
-lemma-pred-≤ x y (x≤succ (succ x) y p) = lemma-pred1-≤ x y p
-
-lemma-succ-> : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
-lemma-succ-> x y x>y = λ p → x>y (lemma-pred-≤ x y p)
-
-lemma-pred-> : (x : ℕ) (y : ℕ) → (succ x) > (succ y) → x > y
-lemma-pred-> x y p = λ p1 → p (lemma-succ-≤ x y p1)
-
--- Zero is always less than a number of the form succ something
-lemma-zero-<-succ : (x : ℕ) → zero < succ x
-lemma-zero-<-succ zero = base< zero
-lemma-zero-<-succ (succ x) = step< zero (succ x) (lemma-zero-<-succ x)
-
--- If x < y, then (x + 1) < (y + 1)
-lemma-succ-<-succ : (x : ℕ) → (y : ℕ) → x < y → (succ x) < (succ y)
-lemma-succ-<-succ x (succ x) (base< x) = base< (succ x)
-lemma-succ-<-succ x (succ y) (step< x y p) = step< (succ x) (succ y) (lemma-succ-<-succ x y p)
-
-lemma-succ-< : (x : ℕ) → (y : ℕ) → (succ x) < y → x < y
-lemma-succ-< x (succ (succ x)) (base< (succ x)) = step< x (succ x) (base< x)
-lemma-succ-< x (succ y) (step< (succ x) y p) = step< x y (lemma-succ-< x y p)
-
-lemma-pred-< : (x : ℕ) → (y : ℕ) → (succ x) < (succ y) → x < y
-lemma-pred-< x (succ x) (base< (succ x)) = base< x
-lemma-pred-< x y (step< (succ x) y p) = lemma-succ-< x y p
-
-lemma-pred-≥-pred : (x : ℕ) → (y : ℕ) → (succ x) ≥ (succ y) → x ≥ y
-lemma-pred-≥-pred x y p = λ p1 → p (lemma-succ-<-succ x y p1)
-
-
-lemma-pred-<' : (x : ℕ) → (y : ℕ)
-                → pred x < y
-                → x < succ y
-lemma-pred-<' zero .(succ zero) (base< .zero) = step< zero (succ zero) (base< zero)
-lemma-pred-<' (succ x) .(succ x) (base< .x) = base< (succ x)
-lemma-pred-<' x .(succ y) (step< .(pred x) y p)    = step< x (succ y) (lemma-pred-<' x y p)
-
-lemma-pred-≥ : (x : ℕ) → (y : ℕ)
-             → x ≥ succ (y)
-             → pred x ≥ y
-lemma-pred-≥ x y p = λ p1 → p (lemma-pred-<' x y p1)
-
-lemma-≥-1 : (x : ℕ) → (y : ℕ)
-          → x ≥ succ y
-          → x ≥ y
-lemma-≥-1 x y p = λ p1 → p (step< x y p1)
-
-lemma-pred-<-2 : (x : ℕ) (y : ℕ) → succ x < succ y → x < succ y
-lemma-pred-<-2 x .(succ x) (base< .(succ x)) = step< x (succ x) (base< x)
-lemma-pred-<-2 x y (step< .(succ x) .y p) = {!!}
-
-lemma-pred-<-3 : (x : ℕ) (y : ℕ) → succ x < y → (x < y)
-lemma-pred-<-3 x (succ y) p = lemma-pred-<-2 x y p
-
-lemma-≥-2 : (x : ℕ) → (y : ℕ)
-          → x ≥ y
-          → succ x ≥ y
-lemma-≥-2 x y p = λ p1 → p (lemma-pred-<-3 x y p1)
-
-lemma->-1 : (x : ℕ) → (y : ℕ)
-          → x ≥ succ y
-          → x > zero
-lemma->-1 x y p = {!!}
-
-0<0-to-⊥ : zero < zero → ⊥
-0<0-to-⊥ ()
-
-x<x-to-⊥ : (x : ℕ) → x < x → ⊥
-x<x-to-⊥ zero ()
-x<x-to-⊥ (succ x) = λ p → x<x-to-⊥ x (lemma-pred-< x x p)
-
-x≡y-to-x≥y : (x y : ℕ) → x ≡ y → x ≥ y
-x≡y-to-x≥y x x refl = λ p → x<x-to-⊥ x p
-
-x-x≡0 : (x y : ℕ) → x ≡ y → (x - y) ≡ zero
-x-x≡0 zero     zero     refl = refl
-x-x≡0 (succ x) (succ x) refl = x-x≡0 x x refl
-
-
-_≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
-zero ≤? zero = left (x≤x zero)
-zero ≤? succ y = left (lemma-zero-≤ (succ y))
-succ x ≤? zero = right (λ ())
-succ x ≤? succ y with x ≤? y
-... | left x≤y = left (lemma-succ-≤ x y x≤y)
-... | right x>y = right (lemma-succ-> x y x>y)
+... | right p          = right λ p1 → p (x+1≡x+1-to-x≡y p1)
 
 _<?_ : (x : ℕ) → (y : ℕ) → ((x < y) ⊎ (x ≥ y))
-zero <? zero = right (λ ())
-zero <? succ y = left (lemma-zero-<-succ y)
-succ x <? zero = right (λ ())
+zero   <? zero         = right (λ ())
+zero   <? succ y       = left (0<x+1 y)
+succ x <? zero         = right (λ ())
 succ x <? succ y with x <? y
-... | left p = left (lemma-succ-<-succ x y p)
-... | right p = right λ p1 → p (lemma-pred-< x y p1)
+... | left  p          = left (x<y-to-x+1<y+1 x y p)
+... | right p          = right λ p1 → p (x+1<y+1-to-x<y x y p1)
+
+_≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
+zero   ≤? zero         = left (base≤ zero)
+zero   ≤? succ y       = left (0≤x (succ y))
+succ x ≤? zero         = right (λ ())
+succ x ≤? succ y with x ≤? y
+... | left  x≤y        = left (x≤y-to-x+1≤y+1 x y x≤y)
+... | right x>y        = right (x>y-to-x+1>y+1 x y x>y)
+
+-- The comparison of an element with itself always results in a proof of equality.
+-- Comparing x with x, you always get an element of x≡x.
+x≡x : (x : ℕ) → ((x ≡? x) ≡ left refl)
+x≡x zero        = refl
+x≡x (succ x) with x ≡? x
+... | left refl = refl
+... | right p   = absurd (p refl)
 
 max : ℕ → ℕ → ℕ
 max a b with a ≤? b
-... | left a≤b = b
+... | left  a≤b = b
 ... | right a>b = a
 
 
 
-x-ge-x-neq-x-gt : {x n : ℕ} → x ≥ n → x ≢ n → x > n
-x-ge-x-neq-x-gt p1 p2 = {!!}
+x≥y-and-x≢y-to-x>y : {x y : ℕ} → x ≥ y → x ≢ y → x > y
+x≥y-and-x≢y-to-x>y {x} {y} p1 p2 = {!!}
 
-eq-minus-succ : (a : ℕ) (b : ℕ)
-  → a ≥ b
-  → succ (a - b) ≡ succ a - b
+-- a ≥ b   ⇒   (a - b) + 1 ≡ (a+1) - b
+-- This is not true for a < b.
+-- (2 - 3) + 1 = 1 while (2 + 1) - 3 = 0    because    (2-3) = 0
+eq-minus-succ : (a : ℕ) (b : ℕ) → a ≥ b → succ (a - b) ≡ succ a - b
 eq-minus-succ a        zero     p1 = refl
-eq-minus-succ zero     (succ b) p1 = absurd (p1 (lemma-zero-<-succ b))
-eq-minus-succ (succ a) (succ b) p1 = eq-minus-succ a b (lemma-pred-≥-pred a b p1)
+eq-minus-succ zero     (succ b) p1 = absurd (p1 (0<x+1 b))
+eq-minus-succ (succ a) (succ b) p1 = eq-minus-succ a b (x+1≥y+1-to-x≥y a b p1)
