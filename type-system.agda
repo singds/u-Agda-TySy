@@ -33,12 +33,12 @@ data HasType : Env → Term → Type → Set where
             → HasType Γ (num n) Nat
 
   t-sum   : {Γ : Env} {m1 m2 : Term}
-            → HasType Γ m1 Nat
-            → HasType Γ m2 Nat
+            → (p1 : HasType Γ m1 Nat)
+            → (p2 : HasType Γ m2 Nat)
             → HasType Γ (m1 +ₙ m2) Nat
 
   t-var   : {Γ : Env} {x : ℕ} {t : Type}
-            → (getIdx Γ x) ≡ some t
+            → (p : (getIdx Γ x) ≡ some t)
             → HasType Γ (var x) t
 
   t-app   : {Γ : Env} {m1 m2 : Term} {t1 t2 : Type}
@@ -51,9 +51,9 @@ data HasType : Env → Term → Type → Set where
             → HasType Γ (fun t1 m) (Tarrow t1 t2)
 
   t-if    : {Γ : Env} {m1 m2 m3 : Term} {t : Type}
-            → HasType Γ m1 Bool
-            → HasType Γ m2 t
-            → HasType Γ m3 t
+            → (p1 : HasType Γ m1 Bool)
+            → (p2 : HasType Γ m2 t)
+            → (p3 : HasType Γ m3 t)
             → HasType Γ (if m1 then m2 else m3) t
 
 -- Definition of terms that are values.
@@ -340,6 +340,33 @@ type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 
 
 
 
+-- Evaluation in multiple steps
+-- reflexive and transitive closure
+data _⇒*_ : Term → Term → Set where
+  e-refl       : (e1 : Term) → e1 ⇒* e1                                                   -- reflexivity
+  e-trans    : (e1 e2 e3 : Term) → e1 ⇒* e2 → e2 ⇒* e3 → e1 ⇒* e3   -- transitivity
 
 
- 
+
+-- ∅ ⊢ m : t   ⇒   m is a value or ∃ m' s.t. m ⇒ m'
+progress : {m : Term} {t : Type}
+         → HasType [] m t
+         → (Value m) ⊎ (∃ Term (λ m' → m ⇒ m'))
+progress t-true                      = left v-true
+progress t-false                     = left v-false
+progress (t-nat {Γ} {n})             = left (v-nat n)
+progress (t-fun {Γ} {t1} {t2} {m} p) = left (v-fun t1 m)
+progress (t-sum p1 p2)               = {!!}
+progress (t-app p1 p2)               = {!!}
+progress (t-if p1 p2 p3)             = {!!}
+
+
+
+-- ∅ ⊢ M : T   M ⇒* M'   M' ⇏        then M' is a value
+safety : {m m' : Term} {t : Type}
+       → HasType [] m t
+       → m ⇒* m'
+       → ¬ (∃ Term (λ m'' → m' ⇒ m''))
+       → Value m'
+safety = {!!}
+
