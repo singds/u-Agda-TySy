@@ -221,10 +221,19 @@ max a b with a ≤? b
 ... | left  a≤b = b
 ... | right a>b = a
 
+0≥x+1-to-⊥ : (x : ℕ) → zero ≥ succ x → ⊥
+0≥x+1-to-⊥ zero     p = p (base< zero)
+0≥x+1-to-⊥ (succ x) p = 0≥x+1-to-⊥ x (λ z → p (step< zero (succ x) z))
 
+x+1≢y+1-to-x≢y : {x y : ℕ} → succ x ≢ succ y → x ≢ y
+x+1≢y+1-to-x≢y p = λ p1 → p (cong succ p1)
 
+-- x ≥ y and x ≢ y   ⇒   x > y
 x≥y-and-x≢y-to-x>y : {x y : ℕ} → x ≥ y → x ≢ y → x > y
-x≥y-and-x≢y-to-x>y {x} {y} p1 p2 = {!!}
+x≥y-and-x≢y-to-x>y {zero}   {zero}   p1 p2 = absurd (p2 refl)
+x≥y-and-x≢y-to-x>y {zero}   {succ y} p1 p2 = absurd (0≥x+1-to-⊥ y p1)
+x≥y-and-x≢y-to-x>y {succ x} {zero}   p1 p2 = λ ()
+x≥y-and-x≢y-to-x>y {succ x} {succ y} p1 p2 = x>y-to-x+1>y+1 x y (x≥y-and-x≢y-to-x>y (x+1≥y+1-to-x≥y x y p1) (x+1≢y+1-to-x≢y p2))
 
 -- a ≥ b   ⇒   (a - b) + 1 ≡ (a+1) - b
 -- This is not true for a < b.

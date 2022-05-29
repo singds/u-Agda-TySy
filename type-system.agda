@@ -13,7 +13,7 @@ data Type : Set where
 data Term : Set where
   var     : (x : ℕ)                    → Term
   _app_   : (e1 : Term) → (e2 : Term)  → Term
-  fun     : (t : Type)  → (e1 : Term)  → Term
+  fun     : (t : Type) → (e1 : Term)   → Term
 
 -- Free variables of a term.
 fv : Term → List {ℕ}
