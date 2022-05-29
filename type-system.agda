@@ -11,20 +11,26 @@ data Type : Set where
 
 -- Language terms
 data Term : Set where
+  true    :                              Term
+  false   :                              Term
+  num     : (n : ℕ)                    → Term
   var     : (x : ℕ)                    → Term
   _app_   : (e1 : Term) → (e2 : Term)  → Term
   fun     : (t : Type) → (e1 : Term)   → Term
-
--- Free variables of a term.
-fv : Term → List {ℕ}
-fv (var x) = x ∷ []
-fv (m1 app m2) = (fv m1) ++ (fv m2)
-fv (fun t m) = decAll ((fv m) remove zero)
 
 -- The environment is a list of types. No variable names are saved in the env.
 Env = List {Type}
 
 data HasType : Env → Term → Type → Set where
+  t-true  : {Γ : Env}
+            → HasType Γ true Bool
+
+  t-false : {Γ : Env}
+            → HasType Γ false Bool
+
+  t-nat   : {Γ : Env} {n : ℕ}
+            → HasType Γ (num n) Nat
+
   t-var   : {Γ : Env} {x : ℕ} {t : Type}
             → (getIdx Γ x) ≡ some t
             → HasType Γ (var x) t
@@ -37,6 +43,21 @@ data HasType : Env → Term → Type → Set where
   t-fun   : {Γ : Env} {t1 t2 : Type} {e1 : Term}
             → (p : HasType (t1 ∷  Γ) e1 t2)
             → HasType Γ (fun t1 e1) (Tarrow t1 t2)
+
+-- Definition of terms that are values.
+data Value : Term → Set where
+  v-true  :                          Value true
+  v-false :                          Value false
+  v-fun   : (t : Type) (e : Term) →  Value (fun t e)
+
+-- Free variables of a term.
+fv : Term → List {ℕ}
+fv true        = []
+fv false       = []
+fv (num n)     = []
+fv (var x)     = x ∷ []
+fv (m1 app m2) = (fv m1) ++ (fv m2)
+fv (fun t m)   = decAll ((fv m) remove zero)
 
 lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type}
             → HasType Γ (var x) t
@@ -53,9 +74,6 @@ lemma-invertion-fun : {Γ : Env} {m : Term} {t1 t : Type}
             → ∃ Type (λ t2 → (t ≡ (Tarrow t1 t2)) & HasType (t1 ∷ Γ) m t2)
 lemma-invertion-fun (t-fun {Γ} {t1} {t2} p) = exists t2 (refl and p)
 
--- Definition of terms that are values.
-data Value : Term → Set where
-  v-fun   : (t : Type) (e : Term) →  Value (fun t e)
 
 shift : ℕ → ℕ → Term → Term
 shift d c (var x) with x <? c
@@ -63,6 +81,10 @@ shift d c (var x) with x <? c
 ... | right p         = var (x + d)
 shift d c (e1 app e2) = (shift d c e1) app  (shift d c e2)
 shift d c (fun t e1)  = fun t (shift d (succ c) e1)
+shift d c true        = true
+shift d c false       = false
+shift d c (num n)     = num n
+
 
 shift-back : ℕ → ℕ → Term → Term
 shift-back d c (var x) with x <? c
@@ -70,6 +92,10 @@ shift-back d c (var x) with x <? c
 ... | right p              = var (x - d)
 shift-back d c (e1 app e2) = (shift-back d c e1) app  (shift-back d c e2)
 shift-back d c (fun t e1)  = fun t (shift-back d (succ c) e1)
+shift-back d c true        = true
+shift-back d c false       = false
+shift-back d c (num n)     = num n
+
 
 -- Substitution [j:=s]m.
 -- Substitute the variable j with the term s in m.
@@ -79,6 +105,9 @@ subst j s (var x) with x ≡? j
 ... | right p          = var x
 subst j s (e1 app e2)  = (subst j s e1) app (subst j s e2)
 subst j s (fun t e1)   = fun t (subst (succ j) (shift one zero s) e1)
+subst j s true         = true
+subst j s false        = false
+subst j s (num n)      = num n
 
 -- Evaluation judgement. 
 data _⇒_ : Term → Term → Set where
@@ -102,7 +131,10 @@ data _⇒_ : Term → Term → Set where
 weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type}
         → HasType (Γ₁ ++ Γ) m tm
         → HasType (Γ₁ ++ (tu ∷ Γ)) (shift one (len Γ₁) m) tm
-
+        
+weakening-2 t-true  = t-true
+weakening-2 t-false = t-false
+weakening-2 t-nat   = t-nat
 weakening-2 {Γ} {Γ₁} {var x} (t-var p) with x <? (len Γ₁)
 weakening-2 {Γ} {Γ₁} {m} {tm} {tu} (t-var {_} {i} p1)
     | left  p2
@@ -120,6 +152,9 @@ weakening : {Γ : Env} {m : Term} {t tu : Type}
         → HasType Γ m t
         → HasType (tu ∷ Γ) (shift one zero m) t
 
+weakening t-true  = t-true
+weakening t-false = t-false
+weakening t-nat   = t-nat
 weakening {Γ} {var x} (t-var p) with x <? zero
 ... | right p2 rewrite symm+ x (succ zero) = t-var p
 weakening (t-app p1 p2)                    = t-app (weakening p1) (weakening p2)
@@ -134,6 +169,9 @@ substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
         → HasType (Γ₁ ++ (S ∷ Γ)) N S
         → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
 
+substitution t-true  p2 = t-true
+substitution t-false p2 = t-false
+substitution t-nat   p2 = t-nat
 substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2 with x ≡? (len Γ₁)
 ... | left  p
       rewrite eq-idx-in-second Γ₁ (S ∷ Γ) x (x≡y-to-x≥y x (len Γ₁) p)
@@ -153,6 +191,9 @@ back-one : {t : Type} (Γ : Env) (tu : Type) (Γ₁ : Env) (m : Term)
         → ¬ (len (Γ₁) ∈ (fv m))
         → HasType (Γ₁ ++ Γ) (shift-back one (len Γ₁) m) t
 
+back-one Γ tu Γ₁ true    t-true  p2 = t-true
+back-one Γ tu Γ₁ false   t-false p2 = t-false
+back-one Γ tu Γ₁ (num n) t-nat   p2 = t-nat
 back-one Γ tu Γ₁ (var x) (t-var p1) p2 with x <? len(Γ₁)
 ... | left  p
       rewrite eq-idx-in-first Γ₁ (tu ∷ Γ) x p
