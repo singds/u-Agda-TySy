@@ -281,19 +281,23 @@ back-one Γ tu Γ₁ (if m1 then m2 else m3) (t-if p1 p2 p3) p4 =
       
 back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 =
     t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (notin-dec-not-succ-in-list' p2))
-back-one Γ tu Γ₁ (var x) (t-var p1) p2
+back-one Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) p2
   with x <? len(Γ₁)
 ... | left  p
   rewrite eq-idx-in-first Γ₁ (tu ∷ Γ) x p
         | eq-idx-in-first-in-concat Γ₁ Γ x p = t-var p1
--- TODO use eq-idx-second-rem-from-center instead of index-rem-from-center
-... | right p = t-var (index-rem-from-center x p1 x->-len)
+... | right p = t-var p-getIdx
   where
   x-not-len : x ≢ len(Γ₁)
   x-not-len = symm≢  (neq-the-first p2)
 
   x->-len : x > len(Γ₁)
   x->-len = x≥y-and-x≢y-to-x>y p x-not-len
+
+  p-getIdx : getIdx (Γ₁ ++ Γ) (pred x) ≡ some t
+  p-getIdx rewrite eq-idx-second-rem-from-center Γ₁ tu Γ x x->-len = p1
+
+
 
 
 -- Γ ⊢ M : T    M ⇒ M'   ⇒   Γ ⊢ M' : T

@@ -237,12 +237,4 @@ eq-idx-add-one x xs i = refl
 
 
 
--- TODO remove this, keep only eq-idx-second-rem-from-center
-index-rem-from-center : {A : Set} {xs : List {A}} {x : A} {ys : List {A}} {v : A}
-    → (n : ℕ)
-    → getIdx (xs ++ (x ∷ ys)) n ≡ some v
-    → n > len(xs)
-    → getIdx (xs ++ ys) (pred n) ≡ some v
-index-rem-from-center = {!   !}
-
 
