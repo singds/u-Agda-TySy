@@ -299,6 +299,27 @@ back-one Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) p2
 
 
 
+  -- for any k,        k ∉ fv (↑[1,k] m)
+not-in-fv : (k : ℕ) → (m : Term) → k ∉ fv (shift one k m)
+not-in-fv k true                   = λ ()
+not-in-fv k false                  = λ ()
+not-in-fv k (num n)                = λ ()
+not-in-fv k (if m then m₁ else m₂) = {!!}
+not-in-fv k (m +ₙ m₁)              = {!!}
+not-in-fv k (m app m₁)             = {!!}
+not-in-fv k (var x) with x <? k
+... | left  p = λ p1 → x∈y∷[]-x≢y-to-⊥ p1 (symm≢ (x<y-to-x≢y p))
+... | right p rewrite symm+ x (succ zero)
+  = λ p1 → x∈y∷[]-x≢y-to-⊥ p1 (symm≢ (x>y-to-x≢y (x≥y-to-x+1>y p)))
+not-in-fv k (fun t m)
+  = succ-notin-list-not-in-dec
+        (notin-after-remove zero (not-in-fv (succ k) m))
+        (x-notin-list-remove-x zero (fv (shift one (succ k) m)))
+  where
+  k+1-not-in-fv : (succ k) ∉ fv (shift one (succ k) m)
+  k+1-not-in-fv = not-in-fv (succ k) m
+
+
 
 -- Γ ⊢ M : T    M ⇒ M'   ⇒   Γ ⊢ M' : T
 type-preservation : {Γ : Env} {m m' : Term} {t : Type}

@@ -1,4 +1,4 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 open import basic
 
 infixl 10 _+_
@@ -154,6 +154,16 @@ x+1<y+1-to-x<y+1 x y (step< (succ x) y p)       = x+1<y-to-x<y+1 x y p
 -- x ≥ y   ⇒   x+1 ≥ y
 x≥y-to-x+1≥y : (x : ℕ) → (y : ℕ) → x ≥ y → succ x ≥ y
 x≥y-to-x+1≥y x y p = λ p1 → p (x+1<y-to-x<y x y p1)
+
+x<y-to-x≢y : {x y : ℕ} → x < y → x ≢ y
+x<y-to-x≢y (base< x) ()
+x<y-to-x≢y (step< x y p) p1 = {!!}
+
+x>y-to-x≢y : {x y : ℕ} → x > y → x ≢ y
+x>y-to-x≢y = {!!}
+
+x≥y-to-x+1>y : {x y : ℕ} → x ≥ y → succ x > y
+x≥y-to-x+1>y = {!!}
 
 -- 0 < 0 is absurd
 0<0-to-⊥ : zero < zero → ⊥

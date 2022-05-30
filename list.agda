@@ -113,14 +113,48 @@ succ-in-list-in-dec' {x} {.(y ∷ xs)} (in-tail .(succ x) y xs p) with y ≡? ze
 notin-dec-not-succ-in-list' : {x : ℕ} {xs : List {ℕ}}
     → x ∉ (decAll (xs remove zero))
     → succ x ∉ xs
-notin-dec-not-succ-in-list' p = λ p1 → p (succ-in-list-in-dec' p1) 
+notin-dec-not-succ-in-list' p = λ p1 → p (succ-in-list-in-dec' p1)
+
+-- when k+1 ∉ xs  and   0 ∉ xs,  then k ∉ (decAll xs)
+-- decAll xs is the list obtained reducing by 1 all the numbers in xs.
+succ-notin-list-not-in-dec : {xs : List {ℕ}} {k : ℕ}
+  → (succ k) ∉ xs
+  → zero ∉ xs
+  → k ∉ (decAll xs)
+succ-notin-list-not-in-dec {[]} {zero} p1 p2     = p2
+succ-notin-list-not-in-dec {x ∷ xs} {k} p1 p2 with x ≡? (succ k)
+... | left refl = λ _ → p1 (in-head (succ k) xs)
+... | right p   = {!!}
+
+-- if an element is not there before a remove, it is not there also after the remove
+notin-after-remove : {x : ℕ} {xs : List {ℕ}}
+  → (y : ℕ)
+  → x ∉ xs
+  → x ∉ (xs remove y)
+notin-after-remove = {!!}
 
 -- xs ++ [] ≡ xs
 xs++[]≡xs : {A : Set} → (xs : List {A}) → xs ++ [] ≡ xs
 xs++[]≡xs [] = refl
 xs++[]≡xs (x ∷ xs) = cong (λ list → x ∷ list) (xs++[]≡xs xs)
 
+-- x ∈ (y ∷ []) and x ≢ y is impossible
+x∈y∷[]-x≢y-to-⊥ : {x y : ℕ} → x ∈ (y ∷ []) → x ≢ y → ⊥
+x∈y∷[]-x≢y-to-⊥ (in-head x []) p2 = p2 refl
 
+-- x ≢ y and x ∉ xs , then x ∉ (y ∷ xs)
+notin-head-notin-tail-notin-list : {x y : ℕ} {xs : List {ℕ}}
+  → x ≢ y
+  → x ∉ xs
+  → x ∉ (y ∷ xs)
+notin-head-notin-tail-notin-list p1 p2 (in-head x xs)      = p1 refl
+notin-head-notin-tail-notin-list p1 p2 (in-tail x y xs p3) = p2 p3
+
+x-notin-list-remove-x : (x : ℕ) (xs : List {ℕ}) → x ∉ (xs remove x)
+x-notin-list-remove-x x []       = λ ()
+x-notin-list-remove-x x (y ∷ xs) with y ≡? x
+... | left  p = x-notin-list-remove-x x xs
+... | right p = notin-head-notin-tail-notin-list (symm≢ p) (x-notin-list-remove-x x xs)
 
 -- -----------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------
@@ -233,7 +267,6 @@ eq-idx-add-one : {A : Set}
   → (i : ℕ)
   → getIdx (xs) i ≡ getIdx (x ∷ xs) (succ i)
 eq-idx-add-one x xs i = refl
-
 
 
 
