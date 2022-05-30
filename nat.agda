@@ -115,6 +115,9 @@ x+1≤y+1-to-x≤y : (x : ℕ) (y : ℕ) → (succ x) ≤ (succ y) → x ≤ y
 x+1≤y+1-to-x≤y x x (base≤ (succ x))     = base≤ x
 x+1≤y+1-to-x≤y x y (step≤ (succ x) y p) = x+1≤y-to-x≤y x y p
 
+x≥y-to-x+1≥y+1 : {x y : ℕ} → x ≥ y → (succ x) ≥ (succ y)
+x≥y-to-x+1≥y+1 = {!!}
+
 -- x > y   ⇒   (x+1) > (y+1)
 x>y-to-x+1>y+1 : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
 x>y-to-x+1>y+1 x y x>y = λ p → x>y (x+1≤y+1-to-x≤y x y p)
@@ -165,9 +168,9 @@ x>y-to-x≢y = {!!}
 x≥y-to-x+1>y : {x y : ℕ} → x ≥ y → succ x > y
 x≥y-to-x+1>y = {!!}
 
--- 0 < 0 is absurd
-0<0-to-⊥ : zero < zero → ⊥
-0<0-to-⊥ ()
+-- x < 0 is absurd for any x
+x<0-to-⊥ : {x : ℕ} → x < zero → ⊥
+x<0-to-⊥ = λ ()
 
 -- x < x is absurd
 x<x-to-⊥ : (x : ℕ) → x < x → ⊥

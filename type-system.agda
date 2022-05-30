@@ -299,14 +299,16 @@ back-one Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) p2
 
 
 
-  -- for any k,        k ∉ fv (↑[1,k] m)
-not-in-fv : (k : ℕ) → (m : Term) → k ∉ fv (shift one k m)
+-- for any k,        k ∉ fv (↑[1,k] m)
+not-in-fv : (k : ℕ)
+  → (m : Term)
+  → k ∉ fv (shift one k m)
 not-in-fv k true                   = λ ()
 not-in-fv k false                  = λ ()
 not-in-fv k (num n)                = λ ()
-not-in-fv k (if m then m₁ else m₂) = {!!}
-not-in-fv k (m +ₙ m₁)              = {!!}
-not-in-fv k (m app m₁)             = {!!}
+not-in-fv k (if m then m₁ else m₂) = {!!} -- by inductive hypothesys
+not-in-fv k (m1 +ₙ m2)             = {!!}
+not-in-fv k (m1 app m2)            = {!!}
 not-in-fv k (var x) with x <? k
 ... | left  p = λ p1 → x∈y∷[]-x≢y-to-⊥ p1 (symm≢ (x<y-to-x≢y p))
 ... | right p rewrite symm+ x (succ zero)
@@ -318,6 +320,46 @@ not-in-fv k (fun t m)
   where
   k+1-not-in-fv : (succ k) ∉ fv (shift one (succ k) m)
   k+1-not-in-fv = not-in-fv (succ k) m
+
+
+
+not-in-fv'' : {k y : ℕ} {s : Term}
+  → y ∉ fv s
+  → y ≥ k
+  → (succ y) ∉ fv (shift one k s)
+not-in-fv'' {k} {y} {true} p1 p2                   = λ ()
+not-in-fv'' {k} {y} {false} p1 p2                  = λ ()
+not-in-fv'' {k} {y} {num n} p1 p2                  = λ ()
+not-in-fv'' {k} {y} {if m1 then m2 else m3} p1 p2  = {!!} -- by inductive hypothesys
+not-in-fv'' {k} {y} {m1 +ₙ m2} p1 p2               = {!!}
+not-in-fv'' {k} {y} {m1 app m2} p1 p2              = {!!}
+not-in-fv'' {k} {y} {var x} p1 p2 with x <? k
+... | left  p3 = λ { (in-head (succ y) []) → {!!}} -- p2 and p3 are in contraddiction
+... | right p3 rewrite symm+ x (succ zero) = λ { (in-head (succ x) []) → p1 (in-head x []) }
+not-in-fv'' {k} {y} {fun t s} p1 p2
+  = succ-notin-list-not-in-dec
+         (notin-after-remove zero (not-in-fv'' {succ k} {succ y} {s} (notin-dec-not-succ-in-list' p1) (x≥y-to-x+1≥y+1 p2) ))
+         (x-notin-list-remove-x zero (fv (shift one (succ k) s)))
+
+
+
+not-in-fv' : {s : Term} (k : ℕ)
+  → (m : Term)
+  → k ∉ fv s
+  → k ∉ fv (subst k s m)
+not-in-fv' k true p1                   = λ ()
+not-in-fv' k false p1                  = λ ()
+not-in-fv' k (num n) p1                = λ ()
+not-in-fv' k (if m then m₁ else m₂) p1 = {!!} -- by inductive hypothesys
+not-in-fv' k (m1 +ₙ m2) p1             = {!!}
+not-in-fv' k (m1 app m2) p1            = {!!}
+not-in-fv' k (var x) p1 with x ≡? k
+... | left  p = p1
+... | right p = λ p2 → x∈y∷[]-x≢y-to-⊥ p2 (symm≢ p)
+not-in-fv' {s} k (fun t m) p1
+  = succ-notin-list-not-in-dec
+        (notin-after-remove zero (not-in-fv' (succ k) m (not-in-fv'' {zero} {k} {s} p1 λ ())))
+        (x-notin-list-remove-x zero (fv (subst (succ k) (shift one zero s) m)))
 
 
 
@@ -344,13 +386,13 @@ type-preservation (t-if p1 p2 p3) (e-if-true m2 m3)
 type-preservation (t-if p1 p2 p3) (e-if-false m2 m3)
   = p3
 type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 v2 x)
-  = back-one Γ t1 [] subst-term (substitution p1 (weakening p3)) zero-!in-fv-subst-term
+  = back-one Γ t1 [] subst-term (substitution p1 (weakening p3)) zero-notin-fv-subst-term
   where
   subst-term : Term
   subst-term = subst zero (shift (succ zero) zero v2) e1
 
-  zero-!in-fv-subst-term : ¬ (zero ∈ fv subst-term)
-  zero-!in-fv-subst-term = {!!}
+  zero-notin-fv-subst-term : ¬ (zero ∈ fv subst-term)
+  zero-notin-fv-subst-term = not-in-fv' zero e1 (not-in-fv zero v2)
 
 
 -- M{x:=N} is the substitution of the variable x with the term N
