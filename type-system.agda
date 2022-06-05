@@ -75,6 +75,7 @@ fv (fun t m)                = decAll ((fv m) remove zero)
 fv (if m1 then m2 else m3)  = (fv m1 ++ fv m2) ++ fv m3
 
 
+-- Invertion lemmas
 lemma-invertion-var : {Γ : Env} {x : ℕ} {t : Type}
             → HasType Γ (var x) t
             → (getIdx Γ x) ≡ some t
@@ -334,7 +335,7 @@ not-in-fv'' {k} {y} {if m1 then m2 else m3} p1 p2  = {!!} -- by inductive hypoth
 not-in-fv'' {k} {y} {m1 +ₙ m2} p1 p2               = {!!}
 not-in-fv'' {k} {y} {m1 app m2} p1 p2              = {!!}
 not-in-fv'' {k} {y} {var x} p1 p2 with x <? k
-... | left  p3 = λ { (in-head (succ y) []) → p2 (x+1<y-to-x<y y k p3)} -- p2 and p3 are in contraddiction
+... | left  p3 = λ { (in-head (succ y) []) → p2 (x+1<y-to-x<y p3)} -- p2 and p3 are in contraddiction
 ... | right p3 rewrite symm+ x (succ zero) = λ { (in-head (succ x) []) → p1 (in-head x []) }
 not-in-fv'' {k} {y} {fun t s} p1 p2
   = succ-notin-list-not-in-dec
