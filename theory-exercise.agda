@@ -93,3 +93,12 @@ dec t = El+ t (λ x → 0) (λ x → x)
 
 cod : Nat → N₁ ⨄ Nat
 cod n = ElNat n (inl *) (λ x r → inr (succ x))
+
+-- es 3 on disjoint union
+-- given B type [Γ] and C type [Γ] and b ∈ B [Γ] define a term
+-- pr(z) ∈ B [x ∈ B ⨄ C] such that
+-- pr(inl(x)) = x ∈ B [x ∈ B]
+-- pr(inr(y)) = b ∈ B [y ∈ C]
+pr : {B C : Set} → B ⨄ C → B → B
+pr t b = El+ t (λ x → x) (λ x → b)
+
