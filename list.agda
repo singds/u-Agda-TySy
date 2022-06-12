@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- {-# OPTIONS --allow-unsolved-metas #-}
 open import basic
 open import nat
 
@@ -91,11 +91,26 @@ not-in-concat-not-in-second : {A : Set} {z : A} {xs : List} {ys : List}
   → z ∉ ys
 not-in-concat-not-in-second {A} {z} {xs} {ys} p = λ inSecond → p (in-second-in-concat z xs ys inSecond)
 
-notin-first-notin-second-notin-concat : {A : Set} {x : A} {xs : List} {ys : List}
-  → x ∉ xs
-  → x ∉ ys
-  → x ∉ (xs ++ ys)
-notin-first-notin-second-notin-concat p1 p2 = {!!}
+-- z ∈ (xs ++ ys)   ⇒   z ∈ ys or z ∈ xs
+in-concat-in-first-or-in-second : {A : Set} {z : A} {xs ys : List}
+  → z ∈ (xs ++ ys)
+  → (z ∈ xs) ⊎ (z ∈ ys)
+in-concat-in-first-or-in-second {A} {z} {[]} {ys} p1                              = right p1
+in-concat-in-first-or-in-second {A} {.x} {x ∷ xs}  {ys} (in-head .x .(xs ++ ys))  = left (in-head x xs)
+in-concat-in-first-or-in-second {A} {.z} {x ∷ xs} {ys} (in-tail z .x .(xs ++ ys) p1)
+  with in-concat-in-first-or-in-second {A} {z} {xs} p1
+... | left  z∈xs = left (in-tail z x xs z∈xs)
+... | right z∈ys = right z∈ys
+
+
+-- z ∉ xs and z ∉ ys   ⇒   z ∉ (xs ++ ys)
+notin-first-notin-second-notin-concat : {A : Set} {z : A} {xs : List} {ys : List}
+  → z ∉ xs
+  → z ∉ ys
+  → z ∉ (xs ++ ys)
+notin-first-notin-second-notin-concat {A} {z} {xs} p1 p2 p3 with in-concat-in-first-or-in-second {A} {z} {xs} p3
+... | left  p = p1 p
+... | right p = p2 p
 
 -- x+1 ∈ xs   ⇒   x ∈ (decAll xs)
 succ-in-list-in-dec : {x : ℕ} {xs : List {ℕ}}
