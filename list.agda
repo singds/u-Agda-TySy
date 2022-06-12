@@ -1,4 +1,4 @@
--- {-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}
 open import basic
 open import nat
 
@@ -80,12 +80,22 @@ in-second-in-concat z []       ys p  = p
 in-second-in-concat z (x ∷ xs) ys p  = in-tail z x (xs ++ ys) (in-second-in-concat z xs ys p)
 
 -- z ∉ (xs ++ ys)   ⇒   z ∉ xs
-not-in-concat-not-in-first : {A : Set} (z : A) (xs : List) (ys : List) → z ∉ (xs ++ ys) → z ∉ xs
-not-in-concat-not-in-first z xs ys p = λ inFirst → p (in-first-in-concat z xs ys inFirst)
+not-in-concat-not-in-first : {A : Set} {z : A} {xs : List} {ys : List}
+  → z ∉ (xs ++ ys)
+  → z ∉ xs
+not-in-concat-not-in-first {A} {z} {xs} {ys} p = λ inFirst → p (in-first-in-concat z xs ys inFirst)
 
 -- z ∉ (xs ++ ys)   ⇒   z ∉ ys
-not-in-concat-not-in-second : {A : Set} (z : A) (xs : List) (ys : List) →  z ∉ (xs ++ ys) → z ∉ ys
-not-in-concat-not-in-second z xs ys p = λ inSecond → p (in-second-in-concat z xs ys inSecond)
+not-in-concat-not-in-second : {A : Set} {z : A} {xs : List} {ys : List}
+  → z ∉ (xs ++ ys)
+  → z ∉ ys
+not-in-concat-not-in-second {A} {z} {xs} {ys} p = λ inSecond → p (in-second-in-concat z xs ys inSecond)
+
+notin-first-notin-second-notin-concat : {A : Set} {x : A} {xs : List} {ys : List}
+  → x ∉ xs
+  → x ∉ ys
+  → x ∉ (xs ++ ys)
+notin-first-notin-second-notin-concat p1 p2 = {!!}
 
 -- x+1 ∈ xs   ⇒   x ∈ (decAll xs)
 succ-in-list-in-dec : {x : ℕ} {xs : List {ℕ}}

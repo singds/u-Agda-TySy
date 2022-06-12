@@ -255,12 +255,12 @@ back-one Γ tu Γ₁ false   t-false p2 = t-false
 back-one Γ tu Γ₁ (num n) t-nat   p2 = t-nat
 back-one Γ tu Γ₁ (m1 app m2) (t-app p1 p2) p3 = 
     t-app
-      (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
-      (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
+      (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  p3))
+      (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second p3))
 back-one Γ tu Γ₁ (m1 +ₙ m2) (t-sum p1 p2) p3 = 
     t-sum
-      (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  (len Γ₁) (fv m1) (fv m2) p3))
-      (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) p3))
+      (back-one Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  p3))
+      (back-one Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second p3))
 back-one Γ tu Γ₁ (if m1 then m2 else m3) (t-if p1 p2 p3) p4 =
     t-if
       (back-one Γ tu Γ₁ m1 p1 lenΓ₁-∉-fvm1)
@@ -268,17 +268,17 @@ back-one Γ tu Γ₁ (if m1 then m2 else m3) (t-if p1 p2 p3) p4 =
       (back-one Γ tu Γ₁ m3 p3 lenΓ₁-∉-fvm3)
     where
     lenΓ₁-∉-fvm1++fvm2 : len Γ₁ ∉ (fv m1 ++ fv m2)
-    lenΓ₁-∉-fvm1++fvm2 = not-in-concat-not-in-first (len Γ₁) (fv m1 ++ fv m2) (fv m3) p4
+    lenΓ₁-∉-fvm1++fvm2 = not-in-concat-not-in-first p4
 
     -- There are no variables with index = len Γ₁ in the free variables of m1,m2 and m3
     lenΓ₁-∉-fvm1 : len Γ₁ ∉ (fv m1)
-    lenΓ₁-∉-fvm1 = not-in-concat-not-in-first (len Γ₁) (fv m1) (fv m2) lenΓ₁-∉-fvm1++fvm2
+    lenΓ₁-∉-fvm1 = not-in-concat-not-in-first lenΓ₁-∉-fvm1++fvm2
 
     lenΓ₁-∉-fvm2 : len Γ₁ ∉ (fv m2)
-    lenΓ₁-∉-fvm2 = not-in-concat-not-in-second (len Γ₁) (fv m1) (fv m2) lenΓ₁-∉-fvm1++fvm2
+    lenΓ₁-∉-fvm2 = not-in-concat-not-in-second lenΓ₁-∉-fvm1++fvm2
 
     lenΓ₁-∉-fvm3 : len Γ₁ ∉ (fv m3)
-    lenΓ₁-∉-fvm3 = not-in-concat-not-in-second (len Γ₁) (fv m1 ++ fv m2) (fv m3) p4
+    lenΓ₁-∉-fvm3 = not-in-concat-not-in-second p4
       
 back-one Γ tu Γ₁ (fun tx m) (t-fun p1) p2 =
     t-fun (back-one Γ tu (tx ∷ Γ₁) m p1 (notin-dec-not-succ-in-list' p2))
@@ -304,12 +304,17 @@ back-one Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) p2
 not-in-fv : (k : ℕ)
   → (m : Term)
   → k ∉ fv (shift one k m)
-not-in-fv k true                   = λ ()
-not-in-fv k false                  = λ ()
-not-in-fv k (num n)                = λ ()
-not-in-fv k (if m then m₁ else m₂) = {!!} -- by inductive hypothesys
-not-in-fv k (m1 +ₙ m2)             = {!!}
-not-in-fv k (m1 app m2)            = {!!}
+not-in-fv k true                    = λ ()
+not-in-fv k false                   = λ ()
+not-in-fv k (num n)                 = λ ()
+not-in-fv k (if m1 then m2 else m3) = -- by inductive hypothesys
+  notin-first-notin-second-notin-concat
+    (notin-first-notin-second-notin-concat (not-in-fv k m1) (not-in-fv k m2))
+    (not-in-fv k m3)
+not-in-fv k (m1 +ₙ m2)             =
+  notin-first-notin-second-notin-concat (not-in-fv k m1) (not-in-fv k m2)
+not-in-fv k (m1 app m2)            =
+  notin-first-notin-second-notin-concat (not-in-fv k m1) (not-in-fv k m2)
 not-in-fv k (var x) with x <? k
 ... | left  p = λ p1 → x∈y∷[]-x≢y-to-⊥ p1 (symm≢ (x<y-to-x≢y p))
 ... | right p rewrite symm+ x (succ zero)
@@ -331,9 +336,21 @@ not-in-fv'' : {k y : ℕ} {s : Term}
 not-in-fv'' {k} {y} {true} p1 p2                   = λ ()
 not-in-fv'' {k} {y} {false} p1 p2                  = λ ()
 not-in-fv'' {k} {y} {num n} p1 p2                  = λ ()
-not-in-fv'' {k} {y} {if m1 then m2 else m3} p1 p2  = {!!} -- by inductive hypothesys
-not-in-fv'' {k} {y} {m1 +ₙ m2} p1 p2               = {!!}
-not-in-fv'' {k} {y} {m1 app m2} p1 p2              = {!!}
+not-in-fv'' {k} {y} {if m1 then m2 else m3} p1 p2  =  -- by inductive hypothesys
+  notin-first-notin-second-notin-concat
+    (notin-first-notin-second-notin-concat
+      (not-in-fv'' {k} {y} {m1} (not-in-concat-not-in-first  (not-in-concat-not-in-first p1)) p2)
+      (not-in-fv'' {k} {y} {m2} (not-in-concat-not-in-second {_} {y} {fv m1} (not-in-concat-not-in-first p1)) p2))
+    (not-in-fv'' {k} {y} {m3} (not-in-concat-not-in-second p1) p2)
+
+not-in-fv'' {k} {y} {m1 +ₙ m2} p1 p2               = 
+  notin-first-notin-second-notin-concat
+    (not-in-fv'' {k} {y} {m1} (not-in-concat-not-in-first  p1) p2)
+    (not-in-fv'' {k} {y} {m2} (not-in-concat-not-in-second p1) p2)
+not-in-fv'' {k} {y} {m1 app m2} p1 p2              =
+  notin-first-notin-second-notin-concat
+    (not-in-fv'' {k} {y} {m1} (not-in-concat-not-in-first  p1) p2)
+    (not-in-fv'' {k} {y} {m2} (not-in-concat-not-in-second p1) p2)
 not-in-fv'' {k} {y} {var x} p1 p2 with x <? k
 ... | left  p3 = λ { (in-head (succ y) []) → p2 (x+1<y-to-x<y p3)} -- p2 and p3 are in contraddiction
 ... | right p3 rewrite symm+ x (succ zero) = λ { (in-head (succ x) []) → p1 (in-head x []) }
@@ -351,9 +368,14 @@ not-in-fv' : {s : Term} (k : ℕ)
 not-in-fv' k true p1                   = λ ()
 not-in-fv' k false p1                  = λ ()
 not-in-fv' k (num n) p1                = λ ()
-not-in-fv' k (if m then m₁ else m₂) p1 = {!!} -- by inductive hypothesys
-not-in-fv' k (m1 +ₙ m2) p1             = {!!}
-not-in-fv' k (m1 app m2) p1            = {!!}
+not-in-fv' k (if m1 then m2 else m3) p1 =  -- by inductive hypothesys
+  notin-first-notin-second-notin-concat
+    (notin-first-notin-second-notin-concat (not-in-fv' k m1 p1) (not-in-fv' k m2 p1))
+    (not-in-fv' k m3 p1)
+not-in-fv' k (m1 +ₙ m2) p1             = 
+  notin-first-notin-second-notin-concat (not-in-fv' k m1 p1) (not-in-fv' k m2 p1)
+not-in-fv' k (m1 app m2) p1            = 
+  notin-first-notin-second-notin-concat (not-in-fv' k m1 p1) (not-in-fv' k m2 p1)
 not-in-fv' k (var x) p1 with x ≡? k
 ... | left  p = p1
 ... | right p = λ p2 → x∈y∷[]-x≢y-to-⊥ p2 (symm≢ p)
