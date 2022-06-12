@@ -415,6 +415,15 @@ data _⇒*_ : Term → Term → Set where
   e-trans    : (e1 e2 e3 : Term) → e1 ⇒* e2 → e2 ⇒* e3 → e1 ⇒* e3   -- transitivity
 
 
+-- Γ ⊢ M : T    M ⇒* M'   ⇒   Γ ⊢ M' : T
+type-preservation' : {Γ : Env} {m m' : Term} {t : Type}
+                  → HasType Γ m t
+                  → m ⇒* m'
+                  → HasType Γ m' t
+type-preservation' p1 (e-refl e1)              = p1
+type-preservation' p1 (e-trans e1 e2 e3 p2 p3) = type-preservation' (type-preservation' p1 p2) p3
+
+
 
 -- lemma of canonical forms
 lemma-canon-bool : {Γ : Env} {m : Term}
@@ -534,5 +543,7 @@ safety : {m m' : Term} {t : Type}
        → m ⇒* m'
        → ¬ (∃ Term (λ m'' → m' ⇒ m''))
        → Value m'
-safety = {!!}
+safety p1 p2 p3 with progress (type-preservation' p1 p2)
+... | left  p = p
+... | right p = absurd (p3 p)
 
