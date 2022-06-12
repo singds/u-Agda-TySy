@@ -1,46 +1,33 @@
+open import basic
+open import nat
+open import list
+open import type-system
+
+-- examples of evaluation
+ev-1 : (fun Bool (var 0)) app true
+  ⇒ true
+ev-1 = e-beta Bool (var zero) true v-true
+
+ev-2 : fun Bool (if (var 0) then (num 1) else (num 2)) app true
+  ⇒ if true then (num 1) else (num 2)
+ev-2 = e-beta Bool (if var zero then num 1 else num 2) true v-true
+
+ev-3 : if true then (num 1) else (num 2)
+  ⇒ num 1
+ev-3 = e-if-true (num 1) (num 2)
+
+ev-4 : fun Bool (if (var 0) then (num 1) else (num 2)) app true
+  ⇒* num 1
+ev-4 = e-trans
+  (e-trans
+    (e-refl (fun Bool (if (var 0) then (num 1) else (num 2)) app true))
+    (e-beta Bool (if var zero then num 1 else num 2) true v-true))
+  (e-if-true (num 1) (num 2))
 
 
--- Equality
-data _≡_ {A : Set} : A → A → Set where
-  refl : {a : A} → a ≡ a
+-- examples of typing
+ty-1 : HasType [] (fun Bool (var 0)) (Tarrow Bool Bool)
+ty-1 = t-fun (t-var refl)
 
-subst : ∀ {A : Set} {x y : A} (P : A → Set)
-  → x ≡ y
-    ---------
-  → P x → P y
-subst P refl px = px
-
-data ℕ : Set where
-  zero : ℕ
-  suc  : ℕ → ℕ
-
-_+_ : ℕ → ℕ → ℕ
-zero    + n  =  n
-(suc m) + n  =  suc (m + n)
-
-data even : ℕ → Set
-data odd  : ℕ → Set
-
-data even where
-
-  even-zero : even zero
-
-  even-suc : ∀ {n : ℕ}
-    → odd n
-      ------------
-    → even (suc n)
-
-data odd where
-  odd-suc : ∀ {n : ℕ}
-    → even n
-      -----------
-    → odd (suc n)
-
-+-comm : ∀ (m n : ℕ) → (m + n) ≡ (n + m)
-+-comm = {!!}
-
-even-comm″ : ∀ (m n : ℕ)
-  → even (m + n)
-    ------------
-  → even (n + m)
-even-comm″ m n p = (subst even {!!}) p
+ty-2 : HasType (Bool ∷ Nat ∷ []) (fun Nat (var 2)) (Tarrow Nat Nat)
+ty-2 = t-fun (t-var refl)

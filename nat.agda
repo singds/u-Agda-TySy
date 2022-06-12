@@ -10,6 +10,7 @@ infixl 10 _+_
 data ℕ : Set where
   zero : ℕ
   succ : ℕ → ℕ
+{-# BUILTIN NATURAL ℕ #-}
 
 data _≤_ : ℕ → ℕ → Set where
   base≤ : (x : ℕ) → x ≤ x

@@ -22,6 +22,8 @@ data Term : Set where
   _app_         : (e1 : Term) → (e2 : Term)  → Term
   fun           : (t : Type) → (e1 : Term)   → Term
 
+infixl 30 _app_
+
 data HasType : Env → Term → Type → Set where
   t-true  : {Γ : Env}
             → HasType Γ true Bool
@@ -434,7 +436,10 @@ type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 
 -- reflexive and transitive closure of the one step evaluation relation.
 data _⇒*_ : Term → Term → Set where
   e-refl     : (e1 : Term) → e1 ⇒* e1                                -- reflexivity
-  e-trans    : (e1 e2 e3 : Term) → e1 ⇒* e2 → e2 ⇒* e3 → e1 ⇒* e3   -- transitivity
+  e-trans    : {e1 e2 e3 : Term} → e1 ⇒* e2 → e2 ⇒ e3 → e1 ⇒* e3   -- transitivity
+
+infixl 5 _⇒_
+infixl 5 _⇒*_
 
 
 -- Γ ⊢ M : T    M ⇒* M'   ⇒   Γ ⊢ M' : T
@@ -443,7 +448,7 @@ type-preservation' : {Γ : Env} {m m' : Term} {t : Type}
                   → m ⇒* m'
                   → HasType Γ m' t
 type-preservation' p1 (e-refl e1)              = p1
-type-preservation' p1 (e-trans e1 e2 e3 p2 p3) = type-preservation' (type-preservation' p1 p2) p3
+type-preservation' p1 (e-trans p2 p3) = type-preservation (type-preservation' p1 p2) p3
 
 
 
