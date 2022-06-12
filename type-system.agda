@@ -409,14 +409,39 @@ type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 
 
 
 -- Evaluation in multiple steps
--- reflexive and transitive closure
+-- reflexive and transitive closure of the one step evaluation relation.
 data _⇒*_ : Term → Term → Set where
-  e-refl       : (e1 : Term) → e1 ⇒* e1                                                   -- reflexivity
+  e-refl     : (e1 : Term) → e1 ⇒* e1                                -- reflexivity
   e-trans    : (e1 e2 e3 : Term) → e1 ⇒* e2 → e2 ⇒* e3 → e1 ⇒* e3   -- transitivity
 
 
 
--- ∅ ⊢ m : t   ⇒   m is a value or ∃ m' s.t. m ⇒ m'
+-- lemma of canonical forms
+lemma-canon-bool : {Γ : Env} {m : Term}
+  → Value m
+  → HasType Γ m Bool
+  → (m ≡ true) ⊎ (m ≡ false)
+lemma-canon-bool pv (t-true)       = left refl
+lemma-canon-bool pv (t-false)      = right refl
+
+lemma-canon-nat : {Γ : Env} {m : Term}
+  → Value m
+  → (HasType Γ m Nat)
+  → ∃ ℕ (λ n → m ≡ num n)
+lemma-canon-nat pv (t-nat {Γ} {n}) = exists n refl
+
+lemma-canon-arrow : {Γ : Env} {t1 t2 : Type} {m : Term}
+  → Value m
+  → HasType Γ m (Tarrow t1 t2)
+  → ∃ Term (λ m1 → m ≡ (fun t1 m1))
+lemma-canon-arrow pv (t-fun {Γ} {t1} {t2} {e1} pt) = exists e1 refl
+
+
+
+-- ∅ ⊢ M : T   ⇒   M value or ∃ M' s.t. M ⇒ M'
+--
+-- If a term M is well typed in the empty context, either this term is a value
+-- or it can make a step of evaluation.
 progress : {m : Term} {t : Type}
          → HasType [] m t
          → (Value m) ⊎ (∃ Term (λ m' → m ⇒ m'))
@@ -424,8 +449,81 @@ progress t-true                      = left v-true
 progress t-false                     = left v-false
 progress (t-nat {Γ} {n})             = left (v-nat n)
 progress (t-fun {Γ} {t1} {t2} {m} p) = left (v-fun t1 m)
-progress (t-sum p1 p2)               = {!!}
-progress (t-app p1 p2)               = {!!}
+progress {m} (t-sum {Γ} {m1} {m2} p1 p2) = m-val-or-eval m1-val-or-eval m2-val-or-eval
+  where
+  -- use the inductive hypothesis
+  -- the subterm m1 is either a value or it can make a step of evaluation
+  -- the same holds for the subterm m2: or it is a value or it can evaluate
+  m1-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+  m1-val-or-eval = progress p1
+
+  m2-val-or-eval : Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
+  m2-val-or-eval = progress p2
+
+  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+                → Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
+                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval (right (exists m1' m1Eval)) _ =
+    -- M1 can make a step of evaluation to M1'
+    right (exists (m1' +ₙ m2) (e-sum-l m1 m1' m2 m1Eval))
+  m-val-or-eval (left m1Val) (right (exists m2' m2Eval)) =
+    -- M1 is a value and M2 can make a step of evaluation to M2'
+    right (exists (m1 +ₙ m2') (e-sum-r m1 m2 m2' m1Val m2Eval))
+  m-val-or-eval (left m1Val) (left  m2Val) =
+    right (exM' exN1 exN2)
+    where
+    -- M1 is a value and M2 is a value
+    -- the type of M1 and M2 is Nat
+    -- by lemma of canonical forms M1 and M2 are natural numbers
+    -- so the sum eval rule can be applied and M can make a step of eval.
+
+    exN1 : ∃ ℕ (λ n → m1 ≡ num n)
+    exN1 = lemma-canon-nat m1Val p1
+
+    exN2 : ∃ ℕ (λ n → m2 ≡ num n)
+    exN2 = lemma-canon-nat m2Val p2
+
+    exM' : ∃ ℕ (λ n1 → (m1 ≡ (num n1)))
+         → ∃ ℕ (λ n2 → (m2 ≡ (num n2)))
+         → ∃ Term (λ m' → (m1 +ₙ m2) ⇒ m')
+    exM' (exists n1 p1) (exists n2 p2) rewrite p1 | p2 = exists (num (n1 + n2)) (e-sum n1 n2)
+  
+progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval m1-val-or-eval m2-val-or-eval
+  where
+  -- use the inductive hypothesis
+  -- the subtern m1 is either a value of it can make a step of evaluation
+  -- the same holds for the subterm m2: or it is a value or it can evaluate
+  m1-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+  m1-val-or-eval = progress p1
+
+  m2-val-or-eval : Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
+  m2-val-or-eval = progress p2
+
+  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+                → Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
+                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval (right (exists m1' m1Eval)) _ =
+    -- M1 can make a step of evaluation to M1'
+    right (exists (m1' app m2) (e-app1 m1 m1' m2 m1Eval))
+  m-val-or-eval (left m1Val) (right (exists m2' m2Eval)) =
+    -- M1 is a value and M2 can make a step of evaluation to M2'
+    right (exists (m1 app m2') (e-app2 m1 m2 m2' m1Val m2Eval))
+  m-val-or-eval (left m1Val) (left m2Val) =
+    right (exM' exF)
+    where
+    -- M1 is a value and M2 is a value
+    -- the type of M1 is an Arrow type and so it must be a function
+
+    exF : ∃ Term (λ body → m1 ≡ (fun t1 body))
+    exF = lemma-canon-arrow m1Val p1
+
+    exM' : ∃ Term (λ body → m1 ≡ (fun t1 body))
+         → ∃ Term (λ m' → (m1 app m2) ⇒ m')
+    exM' (exists body p1) rewrite p1 =
+      exists
+        (shift-back (succ zero) zero (subst zero (shift (succ zero) zero m2) body))
+        (e-beta t1 body m2 m2Val)
+  
 progress (t-if p1 p2 p3)             = {!!}
 
 
