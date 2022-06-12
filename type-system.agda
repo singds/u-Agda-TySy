@@ -485,7 +485,7 @@ progress t-true                      = left v-true
 progress t-false                     = left v-false
 progress (t-nat {Γ} {n})             = left (v-nat n)
 progress (t-fun {Γ} {t1} {t2} {m} p) = left (v-fun t1 m)
-progress {m} (t-sum {Γ} {m1} {m2} p1 p2) = m-val-or-eval m1-val-or-eval m2-val-or-eval
+progress {m} (t-sum {Γ} {m1} {m2} p1 p2) =  m-val-or-eval
   where
   -- use the inductive hypothesis
   -- the subterm m1 is either a value or it can make a step of evaluation
@@ -496,35 +496,19 @@ progress {m} (t-sum {Γ} {m1} {m2} p1 p2) = m-val-or-eval m1-val-or-eval m2-val-
   m2-val-or-eval : Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
   m2-val-or-eval = progress p2
 
-  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
-                → Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
-                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
-  m-val-or-eval (right (exists m1' m1Eval)) _ =
-    -- M1 can make a step of evaluation to M1'
-    right (exists (m1' +ₙ m2) (e-sum-l m1 m1' m2 m1Eval))
-  m-val-or-eval (left m1Val) (right (exists m2' m2Eval)) =
-    -- M1 is a value and M2 can make a step of evaluation to M2'
-    right (exists (m1 +ₙ m2') (e-sum-r m1 m2 m2' m1Val m2Eval))
-  m-val-or-eval (left m1Val) (left  m2Val) =
-    right (exM' exN1 exN2)
-    where
-    -- M1 is a value and M2 is a value
-    -- the type of M1 and M2 is Nat
-    -- by lemma of canonical forms M1 and M2 are natural numbers
-    -- so the sum eval rule can be applied and M can make a step of eval.
+  m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval = case m1-val-or-eval of λ {
+    (left m1Val@(v-nat n1)) → case m2-val-or-eval of λ {
+      (left  (v-nat n2)) →
+             right (exists (num (n1 + n2)) (e-sum n1 n2));
+      (right (exists m2' m2Eval)) →
+             right (exists (m1 +ₙ m2') (e-sum-r m1 m2 m2' m1Val m2Eval))
+      };
+    (right (exists m1' m1Eval)) →
+             right (exists (m1' +ₙ m2) (e-sum-l m1 m1' m2 m1Eval))
+    }
 
-    exN1 : ∃ ℕ (λ n → m1 ≡ num n)
-    exN1 = lemma-canon-nat m1Val p1
-
-    exN2 : ∃ ℕ (λ n → m2 ≡ num n)
-    exN2 = lemma-canon-nat m2Val p2
-
-    exM' : ∃ ℕ (λ n1 → (m1 ≡ (num n1)))
-         → ∃ ℕ (λ n2 → (m2 ≡ (num n2)))
-         → ∃ Term (λ m' → (m1 +ₙ m2) ⇒ m')
-    exM' (exists n1 p1) (exists n2 p2) rewrite p1 | p2 = exists (num (n1 + n2)) (e-sum n1 n2)
-  
-progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval m1-val-or-eval m2-val-or-eval
+progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval
   where
   -- use the inductive hypothesis
   -- the subtern m1 is either a value of it can make a step of evaluation
@@ -535,54 +519,30 @@ progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval m1-val-or-eval m2
   m2-val-or-eval : Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
   m2-val-or-eval = progress p2
 
-  -- TODO, can I avoid the defintion of this function and only write something like
-  -- the following directly ?
-  -- m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
-  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
-                → Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
-                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
-  m-val-or-eval (right (exists m1' m1Eval)) _ =
-    -- M1 can make a step of evaluation to M1'
-    right (exists (m1' app m2) (e-app1 m1 m1' m2 m1Eval))
-  m-val-or-eval (left m1Val) (right (exists m2' m2Eval)) =
-    -- M1 is a value and M2 can make a step of evaluation to M2'
-    right (exists (m1 app m2') (e-app2 m1 m2 m2' m1Val m2Eval))
-  m-val-or-eval (left m1Val) (left m2Val) =
-    right (exM' exF)
-    where
-    -- M1 is a value and M2 is a value
-    -- the type of M1 is an Arrow type and so it must be a function
+  m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval = case m1-val-or-eval of λ {
+    (left m1Val@(v-fun t1 e1)) → case m2-val-or-eval of λ {
+      (left  m2Val) →
+             right (exists (shift-back 1 zero (subst zero (shift 1 zero m2) e1)) (e-beta t1 e1 m2 m2Val));
+      (right (exists m2' m2Eval)) →
+             right (exists (m1 app m2') (e-app2 m1 m2 m2' m1Val m2Eval))
+      };
+    (right (exists m1' m1Eval)) →
+           right (exists (m1' app m2) (e-app1 m1 m1' m2 m1Eval))
+    } 
 
-    exF : ∃ Term (λ body → m1 ≡ (fun t1 body))
-    exF = lemma-canon-arrow m1Val p1
-
-    exM' : ∃ Term (λ body → m1 ≡ (fun t1 body))
-         → ∃ Term (λ m' → (m1 app m2) ⇒ m')
-    exM' (exists body p1) rewrite p1 =
-      exists
-        (shift-back (succ zero) zero (subst zero (shift (succ zero) zero m2) body))
-        (e-beta t1 body m2 m2Val)
-  
-progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval m1-val-or-eval
+progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval
   where
   m1-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
   m1-val-or-eval = progress p1
 
-  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
-                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
-  m-val-or-eval (right (exists m1' m1Eval)) =
-    right (exists (if m1' then m2 else m3) (e-if-guard m1 m1' m2 m3 m1Eval))
-  m-val-or-eval (left m1Val) = right (exM' isTF)
-    where
-    -- M1 is a value, either true or false
-    isTF : (m1 ≡ true) ⊎ (m1 ≡ false)
-    isTF = lemma-canon-bool m1Val p1
-
-    exM' : (m1 ≡ true) ⊎ (m1 ≡ false)
-         → ∃ Term (λ m' → (if m1 then m2 else m3) ⇒ m')
-    exM' (left  isTrue)  rewrite isTrue  = exists m2 (e-if-true m2 m3)
-    exM' (right isFalse) rewrite isFalse = exists m3 (e-if-false m2 m3)
-
+  m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval = case m1-val-or-eval of λ {
+    (left v-true)  → right (exists m2 (e-if-true m2 m3));
+    (left v-false) → right (exists m3 (e-if-false m2 m3));
+    (right (exists m1' m2Eval)) →
+           right (exists (if m1' then m2 else m3) (e-if-guard m1 m1' m2 m3 m2Eval))
+    }
 
 
 -- ∅ ⊢ M : T   M ⇒* M'   M' ⇏        then M' is a value
