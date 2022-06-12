@@ -169,7 +169,7 @@ data _⇒_ : Term → Term → Set where
              → (if m1 then m2 else m3) ⇒ (if m1' then m2 else m3)
 
   e-if-true  : (m2 m3 : Term)
-             → (if true  then m2 else m3) ⇒ m2
+             → (if true then m2 else m3) ⇒ m2
 
   e-if-false : (m2 m3 : Term)
              → (if false then m2 else m3) ⇒ m3
@@ -508,6 +508,9 @@ progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval m1-val-or-eval m2
   m2-val-or-eval : Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
   m2-val-or-eval = progress p2
 
+  -- TODO, can I avoid the defintion of this function and only write something like
+  -- the following directly ?
+  -- m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
   m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
                 → Value m2 ⊎ ∃ Term (λ m2' → m2 ⇒ m2')
                 → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
@@ -533,7 +536,25 @@ progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval m1-val-or-eval m2
         (shift-back (succ zero) zero (subst zero (shift (succ zero) zero m2) body))
         (e-beta t1 body m2 m2Val)
   
-progress (t-if p1 p2 p3)             = {!!}
+progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval m1-val-or-eval
+  where
+  m1-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+  m1-val-or-eval = progress p1
+
+  m-val-or-eval : Value m1 ⊎ ∃ Term (λ m1' → m1 ⇒ m1')
+                → Value m ⊎ ∃ Term (λ m' → m ⇒ m')
+  m-val-or-eval (right (exists m1' m1Eval)) =
+    right (exists (if m1' then m2 else m3) (e-if-guard m1 m1' m2 m3 m1Eval))
+  m-val-or-eval (left m1Val) = right (exM' isTF)
+    where
+    -- M1 is a value, either true or false
+    isTF : (m1 ≡ true) ⊎ (m1 ≡ false)
+    isTF = lemma-canon-bool m1Val p1
+
+    exM' : (m1 ≡ true) ⊎ (m1 ≡ false)
+         → ∃ Term (λ m' → (if m1 then m2 else m3) ⇒ m')
+    exM' (left  isTrue)  rewrite isTrue  = exists m2 (e-if-true m2 m3)
+    exM' (right isFalse) rewrite isFalse = exists m3 (e-if-false m2 m3)
 
 
 
