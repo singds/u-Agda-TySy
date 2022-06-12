@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- {-# OPTIONS --allow-unsolved-metas #-}
 open import basic
 
 infixl 10 _+_
@@ -115,18 +115,18 @@ x<y-to-x≤y (step< x y p) = step≤ x y (x<y-to-x≤y p)
 0≤x+1 x = x<y-to-x≤y (0<x+1 x)
 
 -- x < y   ⇒   (x+1) < (y+1)
-x<y-to-x+1<y+1 : (x : ℕ) (y : ℕ) → x < y → (succ x) < (succ y)
-x<y-to-x+1<y+1 x (succ x) (base< x) = base< (succ x)
-x<y-to-x+1<y+1 x (succ y) (step< x y p) = step< (succ x) (succ y) (x<y-to-x+1<y+1 x y p)
+x<y-to-x+1<y+1 : {x y : ℕ} → x < y → (succ x) < (succ y)
+x<y-to-x+1<y+1 {x} {succ x} (base< x) = base< (succ x)
+x<y-to-x+1<y+1 {x} {succ y} (step< x y p) = step< (succ x) (succ y) (x<y-to-x+1<y+1 p)
 
 -- (x+1) < y   ⇒   x < y
 x+1<y-to-x<y {x} {succ (succ x)} (base< (succ x)) = step< x (succ x) (base< x)
 x+1<y-to-x<y {x} {succ y} (step< (succ x) y p)    = step< x y (x+1<y-to-x<y p)
 
 -- (x+1) < (y+1)   ⇒   x < y
-x+1<y+1-to-x<y : (x : ℕ) (y : ℕ) → (succ x) < (succ y) → x < y
-x+1<y+1-to-x<y x (succ x) (base< (succ x)) = base< x
-x+1<y+1-to-x<y x y (step< (succ x) y p)    = x+1<y-to-x<y p
+x+1<y+1-to-x<y : {x y : ℕ} → (succ x) < (succ y) → x < y
+x+1<y+1-to-x<y {x} {succ x} (base< (succ x)) = base< x
+x+1<y+1-to-x<y {x} {y} (step< (succ x) y p)    = x+1<y-to-x<y p
 
 -- 0 ≤ x    for any x
 0≤x : (x : ℕ) → zero ≤ x
@@ -144,9 +144,9 @@ x+1≤y-to-x≤y x (succ x) (base≤ (succ x))     = step≤ x x (base≤ x)
 x+1≤y-to-x≤y x (succ y) (step≤ (succ x) y p) = step≤ x y (x+1≤y-to-x≤y x y p)
 
 -- (x+1) ≤ (y+1)   ⇒   x ≤ y
-x+1≤y+1-to-x≤y : (x : ℕ) (y : ℕ) → (succ x) ≤ (succ y) → x ≤ y
-x+1≤y+1-to-x≤y x x (base≤ (succ x))     = base≤ x
-x+1≤y+1-to-x≤y x y (step≤ (succ x) y p) = x+1≤y-to-x≤y x y p
+x+1≤y+1-to-x≤y : {x y : ℕ} → (succ x) ≤ (succ y) → x ≤ y
+x+1≤y+1-to-x≤y {x} {x} (base≤ (succ x))     = base≤ x
+x+1≤y+1-to-x≤y {x} {y} (step≤ (succ x) y p) = x+1≤y-to-x≤y x y p
 
 x≥y-to-x+1≥y+1 : {x y : ℕ} → x ≥ y → (succ x) ≥ (succ y)
 x≥y-to-x+1≥y+1 {x} {y} p1 (base< .(succ _))      = p1 (base< x)
@@ -154,7 +154,7 @@ x≥y-to-x+1≥y+1 {x} {y} p1 (step< .(succ _) y p2) = p1 (x+1<y-to-x<y p2)
 
 -- x > y   ⇒   (x+1) > (y+1)
 x>y-to-x+1>y+1 : (x : ℕ) (y : ℕ) → x > y → (succ x) > (succ y)
-x>y-to-x+1>y+1 x y x>y = λ p → x>y (x+1≤y+1-to-x≤y x y p)
+x>y-to-x+1>y+1 x y x>y = λ p → x>y (x+1≤y+1-to-x≤y p)
 
 -- (x+1) > (y+1)   ⇒   x > y
 x+1>y+1-to-x>y : {x y : ℕ} → (succ x) > (succ y) → x > y
@@ -162,7 +162,7 @@ x+1>y+1-to-x>y {x} {y} p = λ p1 → p (x≤y-to-x+1≤y+1 x y p1)
 
 -- (x+1) ≥ (y+1)   ⇒   x ≥ y
 x+1≥y+1-to-x≥y : {x y : ℕ} → (succ x) ≥ (succ y) → x ≥ y
-x+1≥y+1-to-x≥y {x} {y} p = λ p1 → p (x<y-to-x+1<y+1 x y p1)
+x+1≥y+1-to-x≥y {x} {y} p = λ p1 → p (x<y-to-x+1<y+1 p1)
 
 -- x-1 < y   ⇒   x < y+1
 x-1<y-to-x<y+1 : (x : ℕ) (y : ℕ) → pred x < y → x < succ y
@@ -184,23 +184,32 @@ x+1<y-to-x<y+1 x .(succ (succ x)) (base< .(succ x)) = step< x (succ (succ x)) (s
 x+1<y-to-x<y+1 x .(succ y) (step< .(succ x) y p)    = step< x (succ y) (x+1<y-to-x<y+1 x y p)
 
 -- x+1 < y+1   ⇒   x < y+1
-x+1<y+1-to-x<y+1 : (x : ℕ) (y : ℕ) → succ x < succ y → x < succ y
-x+1<y+1-to-x<y+1 x .(succ x) (base< .(succ x))  = step< x (succ x) (base< x)
-x+1<y+1-to-x<y+1 x y (step< (succ x) y p)       = x+1<y-to-x<y+1 x y p
+x+1<y+1-to-x<y+1 : {x y : ℕ} → succ x < succ y → x < succ y
+x+1<y+1-to-x<y+1 {x} {.(succ x)} (base< .(succ x))  = step< x (succ x) (base< x)
+x+1<y+1-to-x<y+1 {x} {y} (step< (succ x) y p)       = x+1<y-to-x<y+1 x y p
 
 -- x ≥ y   ⇒   x+1 ≥ y
 x≥y-to-x+1≥y : (x : ℕ) → (y : ℕ) → x ≥ y → succ x ≥ y
 x≥y-to-x+1≥y x y p = λ p1 → p (x+1<y-to-x<y p1)
 
+x+1≤y-to-x<y : {x y : ℕ} → succ x ≤ y → x < y
+x+1≤y-to-x<y {zero}   {succ y} p1 = 0<x+1 y
+x+1≤y-to-x<y {succ x} {succ y} p1 = x<y-to-x+1<y+1 (x+1≤y-to-x<y (x+1≤y+1-to-x≤y p1))
+
+-- x+1 < x   ⇒   ⊥
+x+1<x-to-⊥ : {x : ℕ} → succ x < x → ⊥
+x+1<x-to-⊥ {succ x} p = x+1<x-to-⊥ {x} (x+1<y+1-to-x<y p)
+
+-- x < y   ⇒   x ≢ y
 x<y-to-x≢y : {x y : ℕ} → x < y → x ≢ y
 x<y-to-x≢y (base< x) ()
-x<y-to-x≢y (step< .(succ y) y p) refl = {!   !}
+x<y-to-x≢y (step< .(succ y) y p) refl = x+1<x-to-⊥ p
 
 x>y-to-x≢y : {x y : ℕ} → x > y → x ≢ y
-x>y-to-x≢y = {!!}
+x>y-to-x≢y {x} p1 p2 rewrite symm p2 = p1 (base≤ x)
 
 x≥y-to-x+1>y : {x y : ℕ} → x ≥ y → succ x > y
-x≥y-to-x+1>y = {!!}
+x≥y-to-x+1>y p1 p2 = p1 (x+1≤y-to-x<y p2)
 
 -- x < 0 is absurd for any x
 x<0-to-⊥ : {x : ℕ} → x < zero → ⊥
@@ -208,7 +217,7 @@ x<0-to-⊥ = λ ()
 
 -- x < x is absurd
 x<x-to-⊥ {zero} ()
-x<x-to-⊥ {succ x} = λ p → x<x-to-⊥ {x} (x+1<y+1-to-x<y x x p)
+x<x-to-⊥ {succ x} = λ p → x<x-to-⊥ {x} (x+1<y+1-to-x<y p)
 
 -- x+1 > 0   for any x
 x+1>0 : (x : ℕ) → succ x > zero
@@ -256,8 +265,8 @@ zero   <? zero         = right (λ ())
 zero   <? succ y       = left (0<x+1 y)
 succ x <? zero         = right (λ ())
 succ x <? succ y with x <? y
-... | left  p          = left (x<y-to-x+1<y+1 x y p)
-... | right p          = right λ p1 → p (x+1<y+1-to-x<y x y p1)
+... | left  p          = left (x<y-to-x+1<y+1 p)
+... | right p          = right λ p1 → p (x+1<y+1-to-x<y p1)
 
 _≤?_ : (x : ℕ) → (y : ℕ) → ((x ≤ y) ⊎ (x > y))
 zero   ≤? zero         = left (base≤ zero)

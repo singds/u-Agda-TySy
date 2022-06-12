@@ -241,7 +241,7 @@ eq-idx-in-first : {A : Set}
     → i < len xs
     → getIdx (xs ++ ys) i ≡ getIdx xs i
 eq-idx-in-first (x ∷ xs) ys zero     p1  = refl
-eq-idx-in-first (x ∷ xs) ys (succ i) p1  = eq-idx-in-first xs ys i (x+1<y+1-to-x<y i (len xs) p1)
+eq-idx-in-first (x ∷ xs) ys (succ i) p1  = eq-idx-in-first xs ys i (x+1<y+1-to-x<y p1)
 
 -- xs[i] ≡ (xs ++ ys)[i]   when i < len(xs)      (for any ys)
 eq-idx-in-first-in-concat : {A : Set}
@@ -251,7 +251,7 @@ eq-idx-in-first-in-concat : {A : Set}
     → i < len xs
     → getIdx xs i ≡ getIdx (xs ++ ys) i
 eq-idx-in-first-in-concat (x ∷ xs) ys zero     p1  = refl
-eq-idx-in-first-in-concat (x ∷ xs) ys (succ i) p1  = eq-idx-in-first-in-concat xs ys i (x+1<y+1-to-x<y i (len xs) p1)
+eq-idx-in-first-in-concat (x ∷ xs) ys (succ i) p1  = eq-idx-in-first-in-concat xs ys i (x+1<y+1-to-x<y p1)
 
 -- xs[i] ≡ (x ∷ xs)[i+1]
 eq-idx-add-one : {A : Set}
