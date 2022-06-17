@@ -92,6 +92,29 @@ data HasType : Env → Term → Type → Set where
             → (p3 : HasType Γ m3 t)
             → HasType Γ (if m1 then m2 else m3) t
 
+
+-- Unicity of typing
+-- Given a context Γ and a term M, there exists at most one type T such that
+-- Γ ⊢ M : T is derivable.
+-- We can equivalently say that if  Γ ⊢ M : T₁ and  Γ ⊢ M : T₂ are two derivable
+-- judgements, then T₁ = T₂.
+type-unicity : {Γ : Env} {m : Term} {t1 t2 : Type}
+    → HasType Γ m t1
+    → HasType Γ m t2
+    → t1 ≡ t2
+type-unicity t-true  t-true              = refl
+type-unicity t-false t-false             = refl
+type-unicity t-nat   t-nat               = refl
+type-unicity (t-sum p1 p3) (t-sum p2 p4) = refl
+type-unicity (t-var p1) (t-var p2)       = eq-opt-some-to-val (trans (symm p1) p2)
+type-unicity (t-app p1 p3) (t-app p2 p4) with type-unicity p1 p2
+... | refl = refl
+type-unicity (t-fun p1) (t-fun p2) with type-unicity p1 p2
+... | refl = refl
+type-unicity (t-if p1 p3 p4) (t-if p2 p5 p6) with type-unicity p3 p5
+... | refl = refl
+
+
 -- Definition of values.
 -- The dependent type Value M represents the proposition:
 --     The term M is a value
@@ -633,4 +656,4 @@ safety p1 p2 p3 with progress (type-preservation' p1 p2)
 ... | left  p = p
 ... | right p = absurd (p3 p)
 
- 
+  
