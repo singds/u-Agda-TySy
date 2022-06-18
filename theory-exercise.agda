@@ -65,12 +65,11 @@ data Id : (A : Set) → A → A → Set where
 -- When I know that two elements are equal, then If I apply the same function
 -- to both the elements I get two elements that are equal.
 El-id : {A : Set} {M : (z₁ : A) → (z₂ : A) → (z3 : Id A z₁ z₂) → Set }
-    → (a : A)
-    → (b : A)
+    {a : A} {b : A}
     → (t : Id A a b)
     → ((x : A) → M x x (id x))
     → M a b t
-El-id a .a (id .a) e = e a
+El-id (id a) e = e a
 
 
 -- -----------------------------------------------------------------------------
@@ -132,7 +131,14 @@ cod n = ElNat n (inl *) (λ x r → inr (succ x))
 -- es 3 propositional equality
 --
 h2 : {z₁ z₂ : Nat} → Id Nat z₁ z₂ → Id Nat (succ z₁) (succ z₂)
-h2 {z₁} {z₂} p = El-id z₁ z₂ p (λ x → id (succ x))
+h2 p = El-id p (λ x → id (succ x))
+
+
+-- -----------------------------------------------------------------------------
+-- es 8 propositional equality
+--
+pf : (w : N₁) → Id N₁ * w
+pf w = El-N₁ {λ x → Id N₁ * x} w (id *)
 
 
 -- -----------------------------------------------------------------------------
