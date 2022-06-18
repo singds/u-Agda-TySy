@@ -50,6 +50,13 @@ El+ (inr y) ex ey = ey y
 data N₁ : Set where
     * : N₁
 
+-- eliminator for singleton
+El-N₁ : {M : N₁ → Set}
+      → (t : N₁)
+      → (c : M *)
+      → M t
+El-N₁ * c = c
+
 -- propositional equality
 data Id : (A : Set) → A → A → Set where
     id : {A : Set} → (a : A) → Id A a a
@@ -66,7 +73,6 @@ El-id : {A : Set} {M : (z₁ : A) → (z₂ : A) → (z3 : Id A z₁ z₂) → S
 El-id a .a (id .a) e = e a
 
 
-
 -- -----------------------------------------------------------------------------
 -- ex 2 list (ok)
 append : {A : Set} → List A → List A → List A
@@ -77,6 +83,7 @@ test2 = append [] ([] ∷ 3 ∷ 4)
 test3 = append ([] ∷ 1 ∷ 2) []
 test4 = append {Nat} [] []
 
+
 -- -----------------------------------------------------------------------------
 -- ex 3 nat (ok)
 --
@@ -84,12 +91,14 @@ test4 = append {Nat} [] []
 _+₁_ : Nat → Nat → Nat
 x +₁ r = ElNat r x (λ w₁ r₁ → succ r₁)
 
+
 -- -----------------------------------------------------------------------------
 -- ex 5 nat (ok)
 --
 -- define multiplication for natural numbers
 _·_ : Nat → Nat → Nat
 x · y = ElNat y 0 (λ w r → x +₁ r)
+
 
 -- -----------------------------------------------------------------------------
 -- ex 6 (ok)
@@ -120,10 +129,11 @@ cod n = ElNat n (inl *) (λ x r → inr (succ x))
 
 
 -- -----------------------------------------------------------------------------
--- es 4 propositional equality
+-- es 3 propositional equality
 --
 h2 : {z₁ z₂ : Nat} → Id Nat z₁ z₂ → Id Nat (succ z₁) (succ z₂)
 h2 {z₁} {z₂} p = El-id z₁ z₂ p (λ x → id (succ x))
+
 
 -- -----------------------------------------------------------------------------
 -- ex 3 disjoint union ?
