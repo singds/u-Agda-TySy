@@ -1,3 +1,39 @@
+{-
+The purpose of this project is to formalize a basic functional language with
+its type system and to prove the well known safety theorem.
+-}
+
+{-
+Agda is a functional programming language based on Marting Martin-Löf's Type Theory.
+The main feature of the language are dependent types.
+
+Dependent type are types that can depends (that are parameterized) on values of
+other types.
+In common mainstream programming languages such as Java we have Generics: types
+that depends on other types.
+
+As an example, in Java we can define the type List<T> that is a generic type
+that can be instantiated providing some other type, such as Integer or String,
+as parameter T. T must be a type and can't be a value. List<Integer> represents
+the type of lists containing integers as elements.
+
+In Agda we can define the type (List : (T : Set) → (n : Nat) → Set) of lists of
+lenght n containing elements of type T. The type (List Nat 4) is the type of lists with
+lenght 4 containing natural numbers.
+This type can't be represented in Java; the second parameter is a value and not
+a type.
+
+Dependent types can be used to define propositions by means of Curry–Howard, such
+that proofs can be developed withing the language.
+In the same language we can develop useful code, such as algorithms, but also
+proove properties of code. We could develop a sorting algorithm and also prove
+its correctness, all inside agda.
+
+All functions that can be defined in Agda are computable, that is, evaluates to
+a final value in a finite number of steps.
+In Agda there is not a clear separation between type checking and execution.
+-}
+
 open import basic
 open import nat
 open import list
