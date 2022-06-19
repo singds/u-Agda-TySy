@@ -142,6 +142,13 @@ pf w = El-N₁ {λ x → Id N₁ * x} w (id *)
 
 
 -- -----------------------------------------------------------------------------
+-- es 9 propositional equality
+--
+pf₁ : (x w : N₁) → Id N₁ x w
+pf₁ x w = El-N₁ {λ k → Id N₁ k w} x (pf w)
+
+
+-- -----------------------------------------------------------------------------
 -- ex 3 disjoint union ?
 --
 -- given B type [Γ] and C type [Γ] and b ∈ B [Γ] define a term
