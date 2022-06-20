@@ -24,6 +24,12 @@ ev-4 = e-trans
     (e-beta Bool (if var zero then num 1 else num 2) true v-true))
   (e-if-true (num 1) (num 2))
 
+ev-5 : ((fun Bool (var zero)) app (fun Bool (var zero)))
+    ⇒ (fun Bool (var zero))
+ev-5 = e-beta Bool (var zero)
+        (fun Bool (var zero))
+        (v-fun Bool (var zero))
+
 
 -- examples of typing
 ty-1 : HasType [] (fun Bool (var 0)) (Tarrow Bool Bool)
