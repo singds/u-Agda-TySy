@@ -4,24 +4,6 @@ open import list
 open import type-system
 
 
-ev-proof : {m1 m2 m3 : Term} → m1 ⇒ m2 → m2 ⇒* m3 → m1 ⇒* m3
-ev-proof {m1} p1 (e-refl e1) = e-trans (e-refl m1) p1
-ev-proof p1 (e-trans p2 p3)   = e-trans (ev-proof p1 p2) p3
-
-_⇒⟨_⟩_ : {m2 m3 : Term} → (m1 : Term) → (m1 ⇒ m2) → (m2 ⇒* m3) → m1 ⇒* m3
-m1 ⇒⟨ p1 ⟩ p2 = ev-proof p1 p2
-
-begin⇒_ : (m : Term) → Term
-begin⇒ m = m
-
-_⇒∎ : (m : Term) → m ⇒* m
-m ⇒∎ = e-refl m
-
-infix  4 begin⇒_
-infix  3 _⇒∎
-infixr 2 _⇒⟨_⟩_
-
-
 -- -----------------------------------------------------------------------------
 -- ------------------------------------------- EXAMPLES OF EVALUATION JUDGEMENTS
 
