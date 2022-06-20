@@ -688,8 +688,7 @@ safety : {m m' : Term} {t : Type}
        → m ⇒* m'
        → ¬ (∃ Term (λ m'' → m' ⇒ m''))
        → Value m'
-safety p1 p2 p3 with progress (type-preservation' p1 p2)
-... | left  p = p
-... | right p = absurd (p3 p)
+safety mTypeT mEval ¬m'Eval with progress (type-preservation' mTypeT mEval)
+... | left  m'Value = m'Value
+... | right m'Eval = absurd (¬m'Eval m'Eval)
 
-  
