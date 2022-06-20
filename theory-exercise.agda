@@ -33,13 +33,13 @@ ElList []       b e = b
 ElList (xs ∷ x) b e = e xs x (ElList xs b e)
 
 -- disjoint union
-data _⨄_ : Set → Set → Set where
-    inl : {A B : Set} → A → A ⨄ B
-    inr : {A B : Set} → B → A ⨄ B
+data _⊎_ : Set → Set → Set where
+    inl : {A B : Set} → A → A ⊎ B
+    inr : {A B : Set} → B → A ⊎ B
 
 -- eliminator fro disjoint union
-El+ : {A B : Set} {M : A ⨄ B → Set}
-    → (t : A ⨄ B)
+El+ : {A B : Set} {M : A ⊎ B → Set}
+    → (t : A ⊎ B)
     → ((x : A) → M (inl {A} {B} x))
     → ((y : B) → M (inr {A} {B} y))
     → M t
@@ -120,10 +120,10 @@ pred n = ElNat n 0 (λ x r → x)
 -- dec(cod(n)) = n
 -- cod(dec(inl(*))) = inl(*)
 -- cod(dec(inr(n))) = inr(n)
-dec : N₁ ⨄ Nat → Nat
+dec : N₁ ⊎ Nat → Nat
 dec t = El+ t (λ x → 0) (λ x → x)
 
-cod : Nat → N₁ ⨄ Nat
+cod : Nat → N₁ ⊎ Nat
 cod n = ElNat n (inl *) (λ x r → inr (succ x))
 
 
@@ -155,5 +155,5 @@ pf₁ x w = El-N₁ {λ k → Id N₁ k w} x (pf w)
 -- pr(z) ∈ B [x ∈ B ⨄ C] such that
 -- pr(inl(x)) = x ∈ B [x ∈ B]
 -- pr(inr(y)) = b ∈ B [y ∈ C]
-pr : {B C : Set} → B ⨄ C → B → B
+pr : {B C : Set} → B ⊎ C → B → B
 pr t b = El+ t (λ x → x) (λ x → b)
