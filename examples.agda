@@ -3,34 +3,61 @@ open import nat
 open import list
 open import type-system
 
+
+ev-proof : {m1 m2 m3 : Term} → m1 ⇒ m2 → m2 ⇒* m3 → m1 ⇒* m3
+ev-proof {m1} p1 (e-refl e1) = e-trans (e-refl m1) p1
+ev-proof p1 (e-trans p2 p3)   = e-trans (ev-proof p1 p2) p3
+
+_⇒⟨_⟩_ : {m2 m3 : Term} → (m1 : Term) → (m1 ⇒ m2) → (m2 ⇒* m3) → m1 ⇒* m3
+m1 ⇒⟨ p1 ⟩ p2 = ev-proof p1 p2
+
+begin⇒_ : (m : Term) → Term
+begin⇒ m = m
+
+_⇒∎ : (m : Term) → m ⇒* m
+m ⇒∎ = e-refl m
+
+infix  4 begin⇒_
+infix  3 _⇒∎
+infixr 2 _⇒⟨_⟩_
+
+
 -- -----------------------------------------------------------------------------
 -- ------------------------------------------- EXAMPLES OF EVALUATION JUDGEMENTS
 
+-- Prove that
+--     (λ x:Bool. x) true ⇒* true
 ev-1 : (fun Bool (var 0)) app true
-  ⇒ true
-ev-1 = e-beta Bool (var zero) true v-true
+  ⇒* true
+ev-1 = begin⇒
+  (fun Bool (var 0)) app true ⇒⟨ e-beta v-true ⟩
+  true ⇒∎
 
-ev-2 : fun Bool (if (var 0) then (num 1) else (num 2)) app true
-  ⇒ if true then (num 1) else (num 2)
-ev-2 = e-beta Bool (if var zero then num 1 else num 2) true v-true
-
-ev-3 : if true then (num 1) else (num 2)
-  ⇒ num 1
-ev-3 = e-if-true (num 1) (num 2)
-
-ev-4 : fun Bool (if (var 0) then (num 1) else (num 2)) app true
+-- Prove that
+--     (λ x:Bool. if x then 1 else 2) true ⇒* 1
+ev-2 : fun Bool (if var 0 then num 1 else num 2) app true
   ⇒* num 1
-ev-4 = e-trans
-  (e-trans
-    (e-refl (fun Bool (if (var 0) then (num 1) else (num 2)) app true))
-    (e-beta Bool (if var zero then num 1 else num 2) true v-true))
-  (e-if-true (num 1) (num 2))
+ev-2 = begin⇒
+  fun Bool (if var 0 then num 1 else num 2) app true  ⇒⟨ e-beta v-true ⟩
+  if true then num 1 else num 2                       ⇒⟨ e-if-true ⟩
+  num 1 ⇒∎
 
-ev-5 : ((fun Bool (var zero)) app (fun Bool (var zero)))
-    ⇒ (fun Bool (var zero))
-ev-5 = e-beta Bool (var zero)
-        (fun Bool (var zero))
-        (v-fun Bool (var zero))
+-- Prove that
+--     (λ x:Bool. if x then 1 else 2) false ⇒* 1
+ev-3 : fun Bool (if var 0 then num 1 else num 2) app false
+  ⇒* num 2
+ev-3 = begin⇒
+  fun Bool (if var 0 then num 1 else num 2) app false  ⇒⟨ e-beta v-false ⟩
+  if false then num 1 else num 2                       ⇒⟨ e-if-false ⟩
+  num 2 ⇒∎  
+
+-- Prove that
+--    (λ x:Bool. x) (λ x:Bool. x) ⇒* (λ x:Bool. x)
+ev-4 : (fun Bool (var 0)) app (fun Bool (var 0))
+    ⇒* fun Bool (var 0)
+ev-4 =  begin⇒
+  (fun Bool (var 0)) app (fun Bool (var 0))            ⇒⟨ e-beta v-fun ⟩
+  fun Bool (var 0) ⇒∎
 
 
 -- -----------------------------------------------------------------------------
@@ -63,7 +90,7 @@ ty-2 = t-fun (t-var refl)
 --
 -- The proof term is obtained by only doing pattern matching on input proofs.
 -- The proof term is unreadable, but it is there.
-ty-⊥-1-term = fun (Tarrow Bool Nat) (fun Bool (if (var 0) then (num 1) else ((var 1) +ₙ (var 0))))
+ty-⊥-1-term = fun (Tarrow Bool Nat) (fun Bool (if var 0 then num 1 else (var 1 +ₙ var 0)))
 ty-⊥-1 : ∃ Type (λ t → HasType [] ty-⊥-1-term t)
        → ⊥
 ty-⊥-1 (exists (Tarrow (Tarrow Bool Nat) .(Tarrow Bool Nat)) (t-fun (t-fun (t-if (t-var refl) t-nat (t-sum (t-var ()) p4)))))

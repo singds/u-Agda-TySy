@@ -85,6 +85,8 @@ data Term : Set where
   _app_         : (e1 : Term) → (e2 : Term)  → Term
   fun           : (t : Type) → (e1 : Term)   → Term  -- "fun t" is a binder whose scope is "e1"
 
+infixl 31 var
+infixl 21 num
 infixl 30 _app_
 infixl 29 _+ₙ_
 infixl 28 if_then_else_
@@ -157,8 +159,8 @@ type-unicity (t-if p1 p3 p4) (t-if p2 p5 p6) with type-unicity p3 p5
 data Value : Term → Set where
   v-true  :                          Value true
   v-false :                          Value false
-  v-nat   : (n : ℕ)                → Value (num n)
-  v-fun   : (t : Type) (e : Term)  → Value (fun t e)
+  v-nat   : {n : ℕ}                → Value (num n)
+  v-fun   : {t : Type} {e : Term}  → Value (fun t e)
 
 -- Free variables of a term
 -- The free variables of a term is a list of ℕ.
@@ -252,39 +254,39 @@ subst j s (if m1 then m2 else m3)
 --     The term M evaluates to the term M' in one step.
 -- Note as beta reduction is defined using the shift operations.
 data _⇒_ : Term → Term → Set where
-  e-app1     : (m1 m1' m2 : Term)
+  e-app1     : {m1 m1' m2 : Term}
              → (p1 : m1 ⇒ m1')
              → (m1 app m2) ⇒ (m1' app m2)
 
-  e-app2     : (v1 m2 m2' : Term)
+  e-app2     : {v1 m2 m2' : Term}
              → (p1 : Value v1)
              → (p2 : m2 ⇒ m2')
              → (v1 app m2) ⇒ (v1 app m2')
 
-  e-beta     : (t : Type) (e1 v2 : Term)
+  e-beta     : {t : Type} {e1 v2 : Term}
              → (p1 : Value v2)
              → ((fun t e1) app v2) ⇒ shift-back 1 0 (subst 0 (shift 1 0 v2) e1)
 
-  e-sum-l    : (m1 m1' m2 : Term)
+  e-sum-l    : {m1 m1' m2 : Term}
              → (p1 : m1 ⇒ m1')
              → (m1 +ₙ m2) ⇒ (m1' +ₙ m2)
 
-  e-sum-r    : (v1 m2 m2' : Term)
+  e-sum-r    : {v1 m2 m2' : Term}
              → (p1 : Value v1)
              → (p2 : m2 ⇒ m2')
              → (v1 +ₙ m2) ⇒ (v1 +ₙ m2')
 
-  e-sum      : (n1 n2 : ℕ)
+  e-sum      : {n1 n2 : ℕ}
              → ((num n1) +ₙ (num n2)) ⇒ (num (n1 + n2))
 
-  e-if-guard : (m1 m1' m2 m3 : Term)
+  e-if-guard : {m1 m1' m2 m3 : Term}
              → (p1 : m1 ⇒ m1')
              → (if m1 then m2 else m3) ⇒ (if m1' then m2 else m3)
 
-  e-if-true  : (m2 m3 : Term)
+  e-if-true  : {m2 m3 : Term}
              → (if true then m2 else m3) ⇒ m2
 
-  e-if-false : (m2 m3 : Term)
+  e-if-false : {m2 m3 : Term}
              → (if false then m2 else m3) ⇒ m3
 
 
@@ -534,23 +536,23 @@ type-preservation : {Γ : Env} {m m' : Term} {t : Type}
                   → HasType Γ m t
                   → m ⇒ m'
                   → HasType Γ m' t
-type-preservation (t-app p1 p3) (e-app1 m1 m1' m2 p2)
+type-preservation (t-app p1 p3) (e-app1 p2)
   = t-app (type-preservation p1 p2) p3
-type-preservation (t-app p1 p3) (e-app2 v1 m2 m2' p2 p4)
+type-preservation (t-app p1 p3) (e-app2 p2 p4)
   = t-app p1 (type-preservation p3 p4)
-type-preservation (t-sum p1 p2) (e-sum-l m1 m1' m2 p3)
+type-preservation (t-sum p1 p2) (e-sum-l p3)
   = t-sum (type-preservation p1 p3) p2
-type-preservation (t-sum p1 p2) (e-sum-r v1 m2 m2' p3 p4)
+type-preservation (t-sum p1 p2) (e-sum-r p3 p4)
   = t-sum p1 (type-preservation p2 p4)
-type-preservation (t-sum p1 p2) (e-sum n1 n2)
+type-preservation (t-sum p1 p2) e-sum
   = t-nat
-type-preservation (t-if p1 p2 p3) (e-if-guard m1 m1' m2 m3 p4)
+type-preservation (t-if p1 p2 p3) (e-if-guard p4)
   = t-if (type-preservation p1 p4) p2 p3
-type-preservation (t-if p1 p2 p3) (e-if-true m2 m3)
+type-preservation (t-if p1 p2 p3) e-if-true
   = p2
-type-preservation (t-if p1 p2 p3) (e-if-false m2 m3)
+type-preservation (t-if p1 p2 p3) e-if-false
   = p3
-type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta t e1 v2 x)
+type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta {_} {e1} {v2} p)
   = strengthening Γ t1 [] subst-term (substitution p1 (weakening p3)) zero-notin-fv-subst-term
   where
   subst-term : Term
@@ -615,10 +617,10 @@ lemma-canon-arrow pv (t-fun {Γ} {t1} {t2} {e1} pt) = exists e1 refl
 progress : {m : Term} {t : Type}
          → HasType [] m t
          → (Value m) ⊎ (∃ Term (λ m' → m ⇒ m'))
-progress t-true                      = left v-true
-progress t-false                     = left v-false
-progress (t-nat {Γ} {n})             = left (v-nat n)
-progress (t-fun {Γ} {t1} {t2} {m} p) = left (v-fun t1 m)
+progress t-true            = left v-true
+progress t-false           = left v-false
+progress t-nat             = left v-nat
+progress (t-fun p)         = left v-fun
 progress {m} (t-sum {Γ} {m1} {m2} p1 p2) =  m-val-or-eval
   where
   -- use the inductive hypothesis
@@ -632,14 +634,14 @@ progress {m} (t-sum {Γ} {m1} {m2} p1 p2) =  m-val-or-eval
 
   m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
   m-val-or-eval = case m1-val-or-eval of λ {
-    (left m1Val@(v-nat n1)) → case m2-val-or-eval of λ {
-      (left  (v-nat n2)) →
-             right (exists (num (n1 + n2)) (e-sum n1 n2));
+    (left m1Val@(v-nat {n1})) → case m2-val-or-eval of λ {
+      (left  (v-nat {n2})) →
+             right (exists (num (n1 + n2)) e-sum);
       (right (exists m2' m2Eval)) →
-             right (exists (m1 +ₙ m2') (e-sum-r m1 m2 m2' m1Val m2Eval))
+             right (exists (m1 +ₙ m2') (e-sum-r m1Val m2Eval))
       };
     (right (exists m1' m1Eval)) →
-             right (exists (m1' +ₙ m2) (e-sum-l m1 m1' m2 m1Eval))
+             right (exists (m1' +ₙ m2) (e-sum-l m1Eval))
     }
 
 progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval
@@ -655,14 +657,14 @@ progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval
 
   m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
   m-val-or-eval = case m1-val-or-eval of λ {
-    (left m1Val@(v-fun t1 e1)) → case m2-val-or-eval of λ {
+    (left m1Val@(v-fun {_} {e1})) → case m2-val-or-eval of λ {
       (left  m2Val) →
-             right (exists (shift-back 1 zero (subst zero (shift 1 zero m2) e1)) (e-beta t1 e1 m2 m2Val));
+             right (exists (shift-back 1 zero (subst zero (shift 1 zero m2) e1)) (e-beta m2Val));
       (right (exists m2' m2Eval)) →
-             right (exists (m1 app m2') (e-app2 m1 m2 m2' m1Val m2Eval))
+             right (exists (m1 app m2') (e-app2 m1Val m2Eval))
       };
     (right (exists m1' m1Eval)) →
-           right (exists (m1' app m2) (e-app1 m1 m1' m2 m1Eval))
+           right (exists (m1' app m2) (e-app1 m1Eval))
     } 
 
 progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval
@@ -672,10 +674,10 @@ progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval
 
   m-val-or-eval : Value m ⊎ ∃ Term (λ m' → m ⇒ m')
   m-val-or-eval = case m1-val-or-eval of λ {
-    (left v-true)  → right (exists m2 (e-if-true m2 m3));
-    (left v-false) → right (exists m3 (e-if-false m2 m3));
+    (left v-true)  → right (exists m2 e-if-true);
+    (left v-false) → right (exists m3 e-if-false);
     (right (exists m1' m2Eval)) →
-           right (exists (if m1' then m2 else m3) (e-if-guard m1 m1' m2 m3 m2Eval))
+           right (exists (if m1' then m2 else m3) (e-if-guard m2Eval))
     }
 
 
