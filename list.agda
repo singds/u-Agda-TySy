@@ -28,12 +28,12 @@ _++_ : {A : Set} → List {A} → List {A} → List {A}
 [] ++ ys        = ys
 (x ∷ xs) ++ ys  = x ∷ (xs ++ ys)
 
--- Compute the lenght of a list.
+-- Compute the length of a list.
 len : {A : Set} → List {A} → ℕ
 len []       = zero
 len (x ∷ xs) = succ (len xs)
 
--- Remove all the numbers euqal to x from the list
+-- Remove all the numbers equal to x from the list
 _remove_ : List → (x : ℕ) → List
 [] remove x   = []
 (x ∷ xs) remove y with x ≡? y

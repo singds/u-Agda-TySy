@@ -5,7 +5,7 @@ open import type-system
 
 
 -- -----------------------------------------------------------------------------
--- ------------------------------------------- EXAMPLES OF EVALUATION JUDGEMENTS
+-- -------------------------------------------- EXAMPLES OF EVALUATION JUDGMENTS
 
 -- Prove that
 --     (λ x:Bool. x) true ⇒* true

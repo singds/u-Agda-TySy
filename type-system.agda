@@ -4,10 +4,10 @@ its type system and to prove the well known safety theorem.
 -}
 
 {-
-Agda is a functional programming language based on Marting Martin-Löf's Type Theory.
+Agda is a functional programming language based on Martin-Löf's Type Theory.
 The main feature of the language are dependent types.
 
-Dependent type are types that can depends (that are parameterized) on values of
+Dependent type are types that can depend (that are parameterized) on values of
 other types.
 In common mainstream programming languages such as Java we have Generics: types
 that depends on other types.
@@ -18,16 +18,16 @@ as parameter T. T must be a type and can't be a value. List<Integer> represents
 the type of lists containing integers as elements.
 
 In Agda we can define the type (List : (T : Set) → (n : Nat) → Set) of lists of
-lenght n containing elements of type T. The type (List Nat 4) is the type of lists with
-lenght 4 containing natural numbers.
+length n containing elements of type T. The type (List Nat 4) is the type of lists with
+length 4 containing natural numbers.
 This type can't be represented in Java; the second parameter is a value and not
 a type.
 
-Dependent types can be used to define propositions by means of Curry–Howard, such
-that proofs can be developed withing the language.
+Dependent types can be used to define propositions by means of Curry–Howard correspondence,
+such that proofs can be developed within the language.
 In the same language we can develop useful code, such as algorithms, but also
-proove properties of code. We could develop a sorting algorithm and also prove
-its correctness, all inside agda.
+prove properties of code. We could develop a sorting algorithm and also prove
+its correctness, all inside Agda.
 
 All functions that can be defined in Agda are computable, that is, evaluates to
 a final value in a finite number of steps.
@@ -45,7 +45,7 @@ data Type : Set where
   Tarrow   : Type → Type → Type
 
 -- The environment is simply a list of types.
--- The environmnet don't contain bindings between variable names and types, but
+-- The environment don't contain bindings between variable names and types, but
 -- only types.
 Env = List {Type}
 
@@ -54,14 +54,14 @@ Env = List {Type}
 -- Note as variables are represented as natural numbers, and lambda abstractions
 -- don't carry along variable names.
 --
--- A variable with number "n" indicates the parameter introduced by the n-th lambda
--- abstraction at its left.
+-- A variable with number "n" indicates the parameter introduced by the n-th
+-- enclosing lambda abstraction.
 --
--- fun Bool fun Nat var 0
+-- fun Bool (fun Nat var 0)
 -- This term has type Bool → Nat → Nat since the term "var 0" indicates the parameter
 -- introduced by "fun Nat".
 --
--- fun Bool fun Nat var 1
+-- fun Bool (fun Nat var 1)
 -- This term has type Bool → Nat → Nat since the term "var 1" indicates the parameter
 -- introduced by "fun Bool".
 --
@@ -91,7 +91,7 @@ infixl 30 _app_
 infixl 29 _+ₙ_
 infixl 28 if_then_else_
 
--- Type judgmenet.
+-- Type judgment.
 -- The dependent type HasType Γ M T correspond to the following proposition:
 --      In environment Γ, the term M has type T
 -- An element of the type HasType Γ M T is a witness that the term M has type T
@@ -131,25 +131,25 @@ data HasType : Env → Term → Type → Set where
             → HasType Γ (if m1 then m2 else m3) t
 
 
--- Unicity of typing
+-- Uniqueness of typing
 -- Given a context Γ and a term M, there exists at most one type T such that
 -- Γ ⊢ M : T is derivable.
 -- We can equivalently say that if  Γ ⊢ M : T₁ and  Γ ⊢ M : T₂ are two derivable
--- judgements, then T₁ = T₂.
-type-unicity : {Γ : Env} {m : Term} {t1 t2 : Type}
+-- judgments, then T₁ = T₂.
+type-uniq : {Γ : Env} {m : Term} {t1 t2 : Type}
     → HasType Γ m t1
     → HasType Γ m t2
     → t1 ≡ t2
-type-unicity t-true  t-true              = refl
-type-unicity t-false t-false             = refl
-type-unicity t-nat   t-nat               = refl
-type-unicity (t-sum p1 p3) (t-sum p2 p4) = refl
-type-unicity (t-var p1) (t-var p2)       = eq-opt-some-to-val (trans (symm p1) p2)
-type-unicity (t-app p1 p3) (t-app p2 p4) with type-unicity p1 p2
+type-uniq t-true  t-true              = refl
+type-uniq t-false t-false             = refl
+type-uniq t-nat   t-nat               = refl
+type-uniq (t-sum p1 p3) (t-sum p2 p4) = refl
+type-uniq (t-var p1) (t-var p2)       = eq-opt-some-to-val (trans (symm p1) p2)
+type-uniq (t-app p1 p3) (t-app p2 p4) with type-uniq p1 p2
 ... | refl = refl
-type-unicity (t-fun p1) (t-fun p2) with type-unicity p1 p2
+type-uniq (t-fun p1) (t-fun p2) with type-uniq p1 p2
 ... | refl = refl
-type-unicity (t-if p1 p3 p4) (t-if p2 p5 p6) with type-unicity p3 p5
+type-uniq (t-if p1 p3 p4) (t-if p2 p5 p6) with type-uniq p3 p5
 ... | refl = refl
 
 
@@ -162,24 +162,24 @@ data Value : Term → Set where
   v-nat   : {n : ℕ}                → Value (num n)
   v-fun   : {t : Type} {e : Term}  → Value (fun t e)
 
--- Free variables of a term
+-- Free variables of a term.
 -- The free variables of a term is a list of ℕ.
 -- Note how free variables are defined for lambda abstractions.
 -- The same number can appear multiple times inside the list.
 --
 -- What free variables are in de Brujin terms ?
 -- A variable is free when there is no abstraction that binds it.
--- A term with free varibales can only be typed in an environment that contains
+-- A term with free variables can only be typed in an environment that contains
 -- bindings for those variables.
 -- In the term "var 0", 0 is a free variable because there is no lambda abstraction
--- to which the variable points. An environment with lenght at least 1 is needed
+-- to which the variable points. An environment with length at least 1 is needed
 -- to type this term.
 -- In the term "fun Bool var 1" the free variable is 0 (not 1). To type this term
 -- we need an environment that specify a type at least for index 0.
 --
 -- The list of free variables of a term is the list of indices that must be available
 -- in an environment to type that term.
--- A term with free variables [3, 5, 1] can only be typed in an env. with lenght
+-- A term with free variables [3, 5, 1] can only be typed in an env. with length
 -- at least 6.
 fv : Term → List {ℕ}
 fv true                     = []
