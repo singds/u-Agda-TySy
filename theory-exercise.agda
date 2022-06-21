@@ -1,6 +1,29 @@
 
 infixl 20 _∷_
 
+-- -----------------------------------------------------------------------------
+-- empty type
+data N₀ : Set where
+
+-- eliminator for the empty type
+E-N₀ : {M : N₀ → Set}
+  → (t : N₀)
+  → M t
+E-N₀ ()
+
+-- -----------------------------------------------------------------------------
+-- dependent product type
+data ∏ : (B : Set) → (C : B → Set) → Set where
+  lamb : {B : Set} {C : B → Set} → ((x : B) → C x) → ∏ B C
+
+-- eliminator for dependent product
+Ap : {B : Set} {C : B → Set}
+  → (f : ∏ B C)
+  → (b : B)
+  → C b
+Ap (lamb f) b = f b
+
+-- -----------------------------------------------------------------------------
 -- natural numbers
 data Nat : Set where
   zero  : Nat
@@ -16,6 +39,7 @@ ElNat : {M : Nat → Set}
 ElNat zero     c e = c
 ElNat (succ t) c e = e t (ElNat t c e)
 
+-- -----------------------------------------------------------------------------
 -- lists
 data List (A : Set) : Set where
     []  : List A
@@ -32,6 +56,7 @@ ElList : {A : Set} {M : (List A) → Set}
 ElList []       b e = b
 ElList (xs ∷ x) b e = e xs x (ElList xs b e)
 
+-- -----------------------------------------------------------------------------
 -- disjoint union
 data _⊎_ : Set → Set → Set where
     inl : {A B : Set} → A → A ⊎ B
@@ -46,6 +71,7 @@ El+ : {A B : Set} {M : A ⊎ B → Set}
 El+ (inl x) ex ey = ex x
 El+ (inr y) ex ey = ey y
 
+-- -----------------------------------------------------------------------------
 -- Unit
 data N₁ : Set where
     * : N₁
@@ -57,6 +83,7 @@ El-N₁ : {M : N₁ → Set}
       → M t
 El-N₁ * c = c
 
+-- -----------------------------------------------------------------------------
 -- propositional equality
 data Id : (A : Set) → A → A → Set where
     id : {A : Set} → (a : A) → Id A a a
@@ -157,3 +184,13 @@ pf₁ x w = El-N₁ {λ k → Id N₁ k w} x (pf w)
 -- pr(inr(y)) = b ∈ B [y ∈ C]
 pr : {B C : Set} → B ⊎ C → B → B
 pr t b = El+ t (λ x → x) (λ x → b)
+
+-- -----------------------------------------------------------------------------
+-- ex 2 curry-howard
+--
+-- show that the type N₁ → N₀ is isomorph to N₀.
+pf1 : (x : ∏ N₁ (λ _ → N₀)) → Id (∏ N₁ (λ _ → N₀)) x (lamb (λ z → Ap x *))
+pf1 x = E-N₀ {λ _ → Id (∏ N₁ (λ _ → N₀)) x (lamb (λ z → Ap x *))} (Ap x *)
+
+pf2 : (y : N₀) → Id N₀ y (Ap (lamb (λ z → y)) *)
+pf2 y = E-N₀ {λ _ → Id N₀ y (Ap (lamb (λ z → y)) *)} y
