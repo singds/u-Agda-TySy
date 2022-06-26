@@ -25,7 +25,7 @@ ev-2 = begin⇒
   num 1 ⇒∎
 
 -- Prove that
---     (λ x:Bool. if x then 1 else 2) false ⇒* 1
+--     (λ x:Bool. if x then 1 else 2) false ⇒* 2
 ev-3 : fun Bool (if var 0 then num 1 else num 2) app false
   ⇒* num 2
 ev-3 = begin⇒

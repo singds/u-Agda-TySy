@@ -62,7 +62,7 @@ Env = List {Type}
 -- introduced by "fun Nat".
 --
 -- fun Bool (fun Nat var 1)
--- This term has type Bool → Nat → Nat since the term "var 1" indicates the parameter
+-- This term has type Bool → Nat → Bool since the term "var 1" indicates the parameter
 -- introduced by "fun Bool".
 --
 -- examples (ex 6.1.1 TPL):
@@ -676,8 +676,8 @@ progress {m} (t-if {Γ} {m1} {m2} {m3} p1 p2 p3) = m-val-or-eval
   m-val-or-eval = case m1-val-or-eval of λ {
     (left v-true)  → right (exists m2 e-if-true);
     (left v-false) → right (exists m3 e-if-false);
-    (right (exists m1' m2Eval)) →
-           right (exists (if m1' then m2 else m3) (e-if-guard m2Eval))
+    (right (exists m1' m1Eval)) →
+           right (exists (if m1' then m2 else m3) (e-if-guard m1Eval))
     }
 
 
