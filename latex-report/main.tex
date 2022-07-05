@@ -11,8 +11,8 @@
 ]{biblatex}
 
 
-\setminted[agda]{encoding=utf8, linenos, fontsize=\small}
-\setmonofont{DejaVu Sans Mono}
+\setminted[agda]{encoding=utf8, linenos}
+\setmonofont[Scale=0.84]{DejaVu Sans Mono}
 \addbibresource{bibliography.bib}
 
 \title{$\mu$ Agda TySy}
@@ -87,12 +87,6 @@ If you are in hurry and you want just to have a glance of the project, you can s
 
 \subsubsection*{Terms}
 
-One of the first thing we have to define are the terms of the language.
-Term is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
-The formalized language is a basic functional language with booleans, natural numbers and an if-then-else construct.
-A similar language can be found in \cite[Ch.\ 9]{pierce}
-
-
 \begin{minted}{agda}
 data Term : Set where
   true          :                              Term
@@ -105,18 +99,70 @@ data Term : Set where
   fun           : (t : Type) → (e1 : Term)   → Term
 \end{minted}
 
-Note that both natural numbers and variables are represented by natural numbers.
-There needs to be a way to distinguish between actual natural numbers and variables.
+One of the first thing we have to define are the terms of the language.
+Term is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
+The formalized language is a basic functional language with booleans, natural numbers and the if-then-else construct.
+A similar language is treated in \cite[Ch.\ 9]{pierce}
 
-\begin{align*}
-Terms \; M & ::= \text{var} \; x       & x \in \mathbb{N} \\
-& | \quad \text{num} \; n              & n \in \mathbb{N} \\
-& | \quad true \; | \; false \\
-& | \quad M_1 + M_2 \\
-& | \quad \text{if} \; M_1 \; \text{then} \; M_2 \; \text{else} \; M_3 \\
-& | \quad \lambda . \; M_1 \\
-& | \quad M_1 M_2
-\end{align*}
+The Term type has \texttt{eight} constructors.
+Each constructor encodes a different way to produce a value of type \texttt{Term}.
+\texttt{true} is a constructor with no parameters that is on its own a value of type \texttt{Term}.
+\texttt{\_app\_} is another constructor that given two values of type Term as inputs, produces a new value of type \texttt{Term}.
+\texttt{\_app\_} behaves like a function in curried form.
+The prepended and postponed \texttt{\_} makes the \texttt{\_app\_} constructor usable as in infix binary operator, such that the application of the term \texttt{m1} to the term \texttt{m2} can be written as \texttt{m1 app m2} instead of \texttt{\_app\_ m1 m2}.
+
+Here are some examples of valid terms.
+Observe how \texttt{tm4} is a valid term although not well typed.
+
+\begin{minted}{agda}
+tm1 = true
+tm2 = if true then (num 1) else (num 0)
+tm3 = (num 1) +ₙ (num 2)
+tm4 = true app false
+tm5 = fun Bool (var 0)
+\end{minted}
+
+This way of representing terms should be mostly familiar to the reader.
+The major difference between the common way of representing terms and this way resides in the representation of variables and lambda abstractions.
+Variables are encoded as natural numbers (not labels) and functions don't carry along a parameter name.
+Inside a function term is only stored the type \texttt{t} of its parameter and the the body \texttt{e1} of the function.
+This way of representing terms was devised by Nicolaas de Brujin \cite[Ch.\ 6]{pierce}.
+Terms in this form are called nameless terms or de Brujin terms.
+
+A variable in a nameless term is an index that points to a precise enclosing lambda abstraction.
+The variable with number k stands for the "the variable bound by the k'th enclosing $\lambda$" \cite[Ch.\ 6 p.\ 76]{pierce}.
+% For example, the variable \texttt{(var 0)} in \texttt{fun Nat (fun Bool (var 0))} references the boolean parameter introduces by the innermost abstraction while \texttt{(var 1)} in \texttt{fun Nat (fun Bool (var 1))} references the integer parameter introduced by the outermost lambda.
+For example, the term \texttt{fun Nat (fun Bool (var 0))} has type \texttt{Nat→Bool→Bool} since \texttt{(var 0)} references the boolean parameter introduces by the innermost abstraction.
+\texttt{fun Nat (fun Bool (var 1))} has type \texttt{Nat→Bool→Nat} instead, because \texttt{(var 1)} references the integer parameter introduced by the outermost lambda.
+
+Here is a table showing some examples of named terms and corresponding nameless terms of our language.
+For even more examples I suggest watching exercise $6.1.1$ \cite[p.\ 76]{pierce} whose solution can be found at \cite[p.\ 503]{pierce}.
+
+\begin{center}
+\begin{tabular}{ |c|c| } 
+ \hline
+ & named term \\
+ \hline
+ \texttt{tm6} & \texttt{$\lambda$x:Bool.x} \\
+ \texttt{tm7} & \texttt{$\lambda$x:Bool $\lambda$y:Nat. if x then y else 0} \\
+ \texttt{tm8} & \texttt{(($\lambda$x:Nat.x) 1) +ₙ (($\lambda$y:Nat.y) 2)} \\
+ \hline
+ \hline
+ 
+ & nameless term \\
+ \hline
+ \texttt{tm6} & \texttt{fun Bool (var 0)} \\
+ \texttt{tm7} & \texttt{fun Bool (fun Nat (if var 1 then var 0 else num 0))} \\
+ \texttt{tm8} & \texttt{((fun Nat var 0) num 1) +ₙ ((fun Nat var 0) num 2)} \\
+ 
+ \hline
+\end{tabular}
+\end{center}
+
+The most interesting property of de Brujin terms is that the representation of a term is unique.
+$\lambda x.x$ and $\lambda y.y$ are two equivalent ways of representing the identity function as a named term, while $\lambda.0$ is the only way of representing the same function as a nameless term.
+In our language the identity function for boolean values is \texttt{tm5}.
+
 
 \newpage
 \nocite{*}
