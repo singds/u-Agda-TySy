@@ -1,0 +1,53 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\title{$\mu$ Agda TySy}
+\author{Giacomo Dal Sasso}
+\date{June 2022}
+
+\begin{document}
+
+\maketitle
+
+\section{Preface}
+
+I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages in Univerity of Padova.
+In the former course I was studying how to develop formal proof using Martin-Löf's type theory while in the latter we were formalizing a functional language and its type system.
+So I thought it was a great idea seeing how the same language and proofs about its type system can be developed in Agda.
+
+The Agda core, as a functional programming language, provides very little to programmers.
+In the Agda core there is no implementation for arrays or lists, neither there is the definition for common types such as booleans or natural numbers.
+Despite of that, list, boolean, integer and other useful types, as functions operating on those types, can be defined by the programmer itself using core features of the language.
+Actually a bunch of types and useful functions are already defined in the Agda standard library that builds on top of Agda core.
+Since Agda is a proof assistant as well, the standard library contains also proofs.
+As an example, the standard library may contain: the definition of the type of natual numbers N, the definition of the binary operator +, and a proof of the commutative property for addition (a + b = b + a).
+
+As in any other programming language, to be sufficiently productive one should learn how to leverage the standard library.
+Note how learning to use the stdlib means also to learn proofs that are already there and to train yourself on developing new proofs you need in terms of facts already proved.
+Since I was new to Agda when developing this project and I wanted to deal with all small details, I decided not to use the library.
+So the project is self contained; all was developed from scratch on top of the Agda core.
+
+This project was for me a perfect way to improve in a single shot Agda, Martin-Löf's type theory and type systems formalization understanding and knowledge.
+Developing the project I had both to simply formalize in Agda blackboard-proofs already done during courses and to develop new, lets say original, proofs.
+I think this project may be a fair challenge for any student interested on those topics.
+
+\section{Introduction}
+
+We define the terms of the language.
+Note that both natural numbers and variables are represented by natural numbers.
+There needs to be a way to distinguish between actual natural numbers and variables.
+
+\begin{align*}
+Terms \; M & ::= \text{var} \; x       & x \in \mathbb{N} \\
+& | \quad \text{num} \; n              & n \in \mathbb{N} \\
+& | \quad true \; | \; false \\
+& | \quad M_1 + M_2 \\
+& | \quad \text{if} \; M_1 \; \text{then} \; M_2 \; \text{else} \; M_3 \\
+& | \quad \lambda . \; M_1 \\
+& | \quad M_1 M_2
+\end{align*}
+
+
+\end{document}
