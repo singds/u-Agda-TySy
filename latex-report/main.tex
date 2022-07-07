@@ -164,6 +164,47 @@ $\lambda x.x$ and $\lambda y.y$ are two equivalent ways of representing the iden
 In our language the identity function for boolean values is \texttt{tm5}.
 
 
+\subsection*{Environment}
+
+\begin{minted}{agda}
+Env = List {Type}
+\end{minted}
+
+An environment for nameless terms is just a list of types.
+The environment doesn't contain bindings between variable names and types, but only types.
+The order in which types appear in the environment is important.
+Note that this is not true for standard environments: the term $x \; y$ is well typed both in the environment $\Gamma_1 = x:\text{Nat} \to \text{Nat}, y:\text{Nat}$ and in $\Gamma_2 = y:\text{Nat}, x:\text{Nat} \to \text{Nat}$. 
+
+Here are some examples of valid environments.
+The element of the list with index 0 is the leftmost.
+
+\begin{minted}{agda}
+env1 = Bool ∷ []
+env2 = Nat ∷ Tarrow Nat Bool ∷ []
+env3 = Bool ∷ Nat ∷ Tarrow (Tarrow Nat Nat) Bool ∷ []
+\end{minted}
+
+As we will see later, the term \texttt{var 0} will be of type \texttt{Bool} in \texttt{env1} while it will be of type \texttt{Nat} in \texttt{env2}.
+This because the type assigned to variable 0 is the type with index 0 of the environment.
+
+
+\subsection*{Free variables}
+
+With this new way of representing terms comes a new definition for free variables.
+Commonly, the set of free variables of a term is defined as the set of labels for which does not exists an enclosing abstraction that introduce that label.
+A variable is free when there is no abstraction that binds it.
+So the set of free variables of a term represents the smallest set of labels for which a binding must be present in the environment for there to be a possibility that the term is well typed in that environment.
+$\lambda x. x + y$ may be well typed only in an environment that contains a binding at least for the label $y$.
+
+With this notion in mind we can come up with a definition of free variables for de Brujin terms.
+The list of free variables of a term is the list of indices that must be available in an environment to type that term.
+
+In the term \texttt{var 0}, 0 is a free variable because there is no lambda abstraction to which the variable points.
+An environment with length at least 1 is needed to type this term.
+In the term \texttt{fun Bool (var 1)} the free variable is 0 (not 1).
+To type this term we need an environment that specify a type at least for index 0.
+A term with free variables [3, 5, 1] can only be typed in an environment with length at least 6.
+
 \newpage
 \nocite{*}
 \printbibliography
