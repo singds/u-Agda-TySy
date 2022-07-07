@@ -2,8 +2,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsfonts}
-\usepackage{minted}
+\usepackage{minted} % for code fragments
 \usepackage{fontspec}
+\usepackage{mathpartir} % for typing rules and derivation trees
 \usepackage[
     backend=biber,
     style=alphabetic,
@@ -102,7 +103,7 @@ data Term : Set where
 One of the first thing we have to define are the terms of the language.
 Term is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
 The formalized language is a basic functional language with booleans, natural numbers and the if-then-else construct.
-A similar language is treated in \cite[Ch.\ 9]{pierce}
+The same language is treated in \cite{crafa}[Ch.\ 4] and a similar one can be found in \cite[Ch.\ 9]{pierce}.
 
 The Term type has \texttt{eight} constructors.
 Each constructor encodes a different way to produce a value of type \texttt{Term}.
@@ -187,6 +188,8 @@ env3 = Bool ∷ Nat ∷ Tarrow (Tarrow Nat Nat) Bool ∷ []
 As we will see later, the term \texttt{var 0} will be of type \texttt{Bool} in \texttt{env1} while it will be of type \texttt{Nat} in \texttt{env2}.
 This because the type assigned to variable 0 is the type with index 0 of the environment.
 
+Observe how every list of types is well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variables names.
+
 
 \subsection*{Free variables}
 
@@ -204,6 +207,79 @@ An environment with length at least 1 is needed to type this term.
 In the term \texttt{fun Bool (var 1)} the free variable is 0 (not 1).
 To type this term we need an environment that specify a type at least for index 0.
 A term with free variables [3, 5, 1] can only be typed in an environment with length at least 6.
+
+Here are some examples of terms with corresponding free variables.
+
+\begin{minted}{text}
+fv(var 1)             = [1]
+fv(fun Bool (var 0))  = []
+fv(fun Nat (var 1))   = [0]
+fv(fun Bool (var 2))  = [1]
+fv(fun Nat fun Bool
+     (if (var 0) then (var 1) else (var 2) +ₙ (var 3))) = [0,1]
+\end{minted}
+
+
+\subsection*{Typing rules}
+
+\begin{minted}{agda}
+data HasType : Env → Term → Type → Set where
+
+-- ... some cut content here
+
+  t-nat   : {Γ : Env} {n : ℕ}
+            → HasType Γ (num n) Nat
+
+  t-var   : {Γ : Env} {x : ℕ} {t : Type}
+            → (p : (getIdx Γ x) ≡ some t)
+            → HasType Γ (var x) t
+            
+  t-fun   : {Γ : Env} {t1 t2 : Type} {m : Term}
+            → (p : HasType (t1 ∷  Γ) m t2)
+            → HasType Γ (fun t1 m) (Tarrow t1 t2)
+\end{minted}
+
+To encode typing rules we define the dependent type \texttt{HasType}.
+\texttt{HasType} depends on a value of type \texttt{Env}, on a term and on a type of our language.
+The type \texttt{HasType $\Gamma$ M T} corresponds to the following proposition:
+
+\vspace{1em}
+\textit{In environment $\Gamma$, the term $M$ has type $T$.}
+\vspace{1em}
+
+\texttt{HasType} can be seen as a function that accepts three arguments and produces a value of type \texttt{Set}, that is a type.
+\texttt{Set} is the type of small types.
+An elements of type \texttt{HasType $\Gamma$ M T} corresponds to a witness that the term \texttt{M} has type \texttt{T} in the environment \texttt{$\Gamma$}.
+Therefore producing an element of type \texttt{HasType $\Gamma$ M T} corresponds to proving the associated proposition.
+
+Each constructor of \texttt{HasType} encodes one typing rule.
+A complete set of typing rules is in \cite[p.\ 15]{crafa}.
+
+The constructors \texttt{t-nat}, \texttt{t-var} and \texttt{t-fun} encode respectively \texttt{T-NAT}, \texttt{T-VAR} and \texttt{T-FUN} rules.
+
+\begin{mathpar}
+
+\inferrule[(T-NAT)]
+{ }
+{\Gamma \vdash n : \text{Nat}}
+
+\and
+
+\inferrule[(T-VAR)]
+{ }
+{\Gamma \vdash n : \text{Nat}}
+\; x:T \in \Gamma
+
+\and
+
+\inferrule[(T-FUN)]
+{\Gamma,x:T_1 \vdash M : T_2}
+{\Gamma \vdash \lambda x:T_1. M : T_1 \to T_2}
+
+\end{mathpar}
+
+
+
 
 \newpage
 \nocite{*}

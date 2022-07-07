@@ -181,6 +181,14 @@ data Value : Term → Set where
 -- in an environment to type that term.
 -- A term with free variables [3, 5, 1] can only be typed in an env. with length
 -- at least 6.
+--
+-- Here are some examples:
+-- fv(var 1)             = [1]
+-- fv(fun Bool (var 0))  = []
+-- fv(fun Nat (var 1))   = [0]
+-- fv(fun Bool (var 2))  = [1]
+-- fv(fun Nat fun Bool (if (var 0) then (var 1) else (var 2) +ₙ (var 3))) = [0,1]
+--
 fv : Term → List {ℕ}
 fv true                     = []
 fv false                    = []
