@@ -249,13 +249,27 @@ The type \texttt{HasType $\Gamma$ M T} corresponds to the following proposition:
 
 \texttt{HasType} can be seen as a function that accepts three arguments and produces a value of type \texttt{Set}, that is a type.
 \texttt{Set} is the type of small types.
-An elements of type \texttt{HasType $\Gamma$ M T} corresponds to a witness that the term \texttt{M} has type \texttt{T} in the environment \texttt{$\Gamma$}.
-Therefore producing an element of type \texttt{HasType $\Gamma$ M T} corresponds to proving the associated proposition.
+An elements of type \texttt{HasType Γ M T} corresponds to a witness that the term \texttt{M} has type \texttt{T} in the environment \texttt{Γ}.
+Therefore producing an element of type \texttt{HasType Γ M T} corresponds to proving the associated proposition.
 
 Each constructor of \texttt{HasType} encodes one typing rule.
 A complete set of typing rules is in \cite[p.\ 15]{crafa}.
 
 The constructors \texttt{t-nat}, \texttt{t-var} and \texttt{t-fun} encode respectively \texttt{T-NAT}, \texttt{T-VAR} and \texttt{T-FUN} rules.
+The three constructors can be red like this:
+\begin{itemize}
+
+\item For any environment \texttt{Γ} and any natural number \texttt{n} the \texttt{t-nat} constructor can produce a proof that the term \texttt{(num n)} has type \texttt{Nat} in \texttt{Γ}.
+
+\item The \texttt{t-var} constructor can prove that the term \texttt{(var x)} has type \texttt{t} if I can provide to it as input a proof (\texttt{p}) that x'th elements in the environment is the type \texttt{t}.
+\texttt{getIdx} is simply a function that picks up the element that sits on a given index of a list.
+
+\item The \texttt{t-fun} constrctor is interesting because it let us prove something about an environment \texttt{Γ}, if we are able to produce a proof dealing with a bigger environment \texttt{t1 ∷ Γ}.
+In particular we can say that the term \texttt{(fun t1 m)} has type \texttt{Tarrow t1 t2} if we are able to produce a proof term showing that in the environment obtained prepending \texttt{t1} to \texttt{Γ}, we can say that the body of the function has type \texttt{t2}.
+
+Note as in the rule $\text{T-FUN}$ environments are expanded appending a new binding on the right while in the constructor \texttt{t-fun} environments are expanded prepending new types on the left; but this is just a matter of syntax.
+
+\end{itemize}
 
 \begin{mathpar}
 
@@ -278,8 +292,21 @@ The constructors \texttt{t-nat}, \texttt{t-var} and \texttt{t-fun} encode respec
 
 \end{mathpar}
 
+Using \texttt{HasType} constructors we can provide evidence that a typing judgement is derivable.
+For example, we can prove the trivial judgement $x : \text{Bool} \vdash x : \text{Bool}$ coding the proof term \texttt{pt1}.
 
+\begin{minted}{agda}
+pt1 : HasType (Bool ∷ []) (var 0) Bool
+pt1 = t-var refl
+\end{minted}
 
+We can also prove that a term is not well typed.
+
+\vspace{1em}
+\textit{We say that a term $M$ is well typed if exists an environment $\Gamma$ and a type $T$ such that the judgement $\Gamma \vdash M : T$ is derivable.}
+\vspace{1em}
+
+Proving that this is not the case is proving that for any environment $\Gamma$ doesn't exist a type $T$ that makes the judgement derivable.
 
 \newpage
 \nocite{*}
