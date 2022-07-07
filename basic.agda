@@ -47,7 +47,7 @@ data ∃ (A : Set) (B : A → Set) : Set where
 -- A holds and B holds
 -- There must be a proof of A and a proof of B
 data _&_ (A : Set) (B : Set) : Set where
-  _and_ : (a : A) (b : B) → A & B
+  _,_ : (a : A) (b : B) → A & B
 
 
 

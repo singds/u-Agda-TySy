@@ -5,6 +5,7 @@
 \usepackage{minted} % for code fragments
 \usepackage{fontspec}
 \usepackage{mathpartir} % for typing rules and derivation trees
+\usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage[
     backend=biber,
     style=alphabetic,
@@ -43,8 +44,9 @@ As an example, the standard library may contain: the definition of the type of n
 As in any other programming language, to be sufficiently productive one should learn how to leverage the standard library.
 Note how learning to use the stdlib means also to learn proofs that are already there and to train yourself on developing new proofs you need in terms of facts already proved.
 Since I was new to Agda when developing this project and I wanted to deal with all small details, I decided not to use the library.
-So the project is self contained; all was developed from scratch on top of the Agda core.\\
+So the project is self contained; all was developed from scratch on top of the Agda core.
 
+\vspace{1em}
 This project was for me a perfect way to improve in a single shot Agda, Martin-Löf's type theory and type systems formalization understanding and knowledge.
 Developing the project I had both to simply formalize in Agda blackboard-proofs already done during courses and to develop new, lets say original, proofs.
 I think this project may be a fair challenge for any student interested on those topics.
@@ -306,7 +308,9 @@ We can also prove that a term is not well typed.
 \textit{We say that a term $M$ is well typed if exists an environment $\Gamma$ and a type $T$ such that the judgement $\Gamma \vdash M : T$ is derivable.}
 \vspace{1em}
 
-Proving that this is not the case is proving that for any environment $\Gamma$ doesn't exist a type $T$ that makes the judgement derivable.
+Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable.
+The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}.
+To prove the proposition we have to write down a term of that type.
 
 \newpage
 \nocite{*}
