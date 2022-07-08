@@ -4,6 +4,8 @@
 \usepackage{amsfonts}
 \usepackage{minted} % for code fragments
 \usepackage{fontspec}
+\usepackage[most]{tcolorbox} % "many" or "most" ? bho
+\usepackage[hidelinks]{hyperref}
 \usepackage{mathpartir} % for typing rules and derivation trees
 \usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage[
@@ -13,7 +15,8 @@
 ]{biblatex}
 
 
-\setminted[agda]{encoding=utf8, linenos}
+% add "linenos" to enable line numbers
+\setminted[agda]{encoding=utf8}
 \setmonofont[Scale=0.84]{DejaVu Sans Mono}
 \addbibresource{bibliography.bib}
 
@@ -28,7 +31,7 @@
 
 \section{Preface}
 
-I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages in Univerity of Padova.
+I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages at Univerity of Padova.
 In the former course I was studying how to develop formal proof using Martin-Löf's type theory while in the latter we were formalizing a functional language and its type system.
 So I thought it was a great idea seeing how the same language and proofs about its type system can be developed in Agda.
 
@@ -308,9 +311,79 @@ We can also prove that a term is not well typed.
 \textit{We say that a term $M$ is well typed if exists an environment $\Gamma$ and a type $T$ such that the judgement $\Gamma \vdash M : T$ is derivable.}
 \vspace{1em}
 
-Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable.
-The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}.
+Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable (De Morgan’s laws for quantifiers).
+
+\[
+\neg \exists \; x \; P(x) \iff \forall \; x \; \neg P(x)
+\]
+
+
+% parbox=false to enable little left space at the beginning of the paragraph
+\begin{tcolorbox}[breakable, enhanced, parbox=false]
+\subsubsection*{Proving negations}
+
+Since here we have to prove that something does not hold, I want to make a little digression about it.
+In Agda, to prove that a proposition $P$ does not hold, we proceed by proving $P \implies false$.
+The $false$ proposition is represented as the empty type \texttt{⊥} (also called bottom type), a type with no constructors.
+
+\begin{minted}{agda}
+data ⊥ : Set where
+\end{minted}
+
+Since there is no constructor for the empty type, there is no way to produce a value of that type and hence there is no way to prove the corresponding proposition.
+
+The type of the proposition $P \implies false$ is \texttt{P → ⊥}, whose elements are functions mapping values of type \texttt{P} in values of type \texttt{⊥}.
+To prove $P \implies false$ we have to write down a function that produces values of type \texttt{⊥} when values of type \texttt{P} are provided as inputs.
+But there is apparently no way to construct a values of type \texttt{⊥}, so how does it works ?
+
+It turns out that we can actually write down a valid function that "produces elements" of type \texttt{⊥} if we show that the domain of the function is empty.
+Agda marks the domain of a function as "clearly empty" using the absurd pattern (see \url{https://agda.readthedocs.io/en/v2.5.2/language/function-definitions.html#absurd-patterns} for more details).
+Most of the time the absurd pattern pops out doing pattern matching on input parameters of the function.
+
+Trivially we can write a function from bottom to bottom.
+The bottom type is clearly an empty domain.
+
+\begin{minted}{agda}
+false-to-false : ⊥ → ⊥
+false-to-false ()
+\end{minted}
+
+For a less trivial example consider the following:
+\begin{minted}{agda}
+data foo1 : ℕ → Set where
+  c1 : foo1 0
+
+data foo2 : ℕ → Set where
+  c2 : foo2 1
+
+fun-foo : (n : ℕ) → foo1 n → foo2 n → ⊥
+fun-foo 0 c1 ()
+\end{minted}
+
+\texttt{fun-foo} is a valid function whose codomain is \texttt{⊥} and whose domain is patently empty.
+A value of type \texttt{foo1} can only be in the form \texttt{c1}, and this fixes \texttt{n=0}.
+Then there is no constructor that can build a value of type \texttt{(foo2 0)} and the absurd pattern mark this fact.
+
+Actually, when you have a function with an empty domain, you can "produce" values of whatever type you like.
+In the two preceding examples you can replace the rightmost \texttt{⊥} with the type you want, and all still works.
+This brigs us to the \texttt{absurd} function, corresponding to the proposition $false \implies P$ for any $P$, used sometimes in the project.
+
+\begin{minted}{agda}
+absurd : {P : Set} → ⊥ → P
+absurd ()
+\end{minted}
+
+If you are able to produce a value of the empty type, then you can prove whatever proposition you like.
+
+\end{tcolorbox}
+
+
+The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the dependent type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}, where \texttt{⊥} is the empty type (bottom type) that has no constructors.
+The type can be read in this way: for every \texttt{Γ} and every \texttt{T}, having a value of type \texttt{HasType Γ M T} is impossible.
 To prove the proposition we have to write down a term of that type.
+
+
+
 
 \newpage
 \nocite{*}
