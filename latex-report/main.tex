@@ -364,9 +364,9 @@ fun-foo 0 c1 ()
 A value of type \texttt{foo1} can only be in the form \texttt{c1}, and this fixes \texttt{n=0}.
 Then there is no constructor that can build a value of type \texttt{(foo2 0)} and the absurd pattern mark this fact.
 
-Actually, when you have a function with an empty domain, you can "produce" values of whatever type you like.
+Actually, when you have a function with an empty domain, you can "produce values" of whatever type you like.
 In the two preceding examples you can replace the rightmost \texttt{⊥} with the type you want, and all still works.
-This brigs us to the \texttt{absurd} function, corresponding to the proposition $false \implies P$ for any $P$, used sometimes in the project.
+This brings us to the \texttt{absurd} function, corresponding to the proposition $false \implies P$ for any $P$, used sometimes in the project.
 
 \begin{minted}{agda}
 absurd : {P : Set} → ⊥ → P
@@ -378,10 +378,30 @@ If you are able to produce a value of the empty type, then you can prove whateve
 \end{tcolorbox}
 
 
-The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the dependent type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}, where \texttt{⊥} is the empty type (bottom type) that has no constructors.
+The proposition $\forall \; \Gamma \; \forall \; T \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the dependent type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}.
 The type can be read in this way: for every \texttt{Γ} and every \texttt{T}, having a value of type \texttt{HasType Γ M T} is impossible.
 To prove the proposition we have to write down a term of that type.
 
+The proof term \texttt{pt2} shows that the term \texttt{true +ₙ num 1} is not well type.
+
+\begin{minted}{agda}
+pt2 : {Γ : Env} {T : Type}
+    → HasType Γ (true +ₙ num 1) T
+    → ⊥
+pt2 (t-sum () p2)
+
+-- pt2 p = ?                   in this stage you pattern match on "p"
+-- pt2 (t-sum p1 p2) = ?       in this stage you pattern match on "p1"
+-- pt2 (t-sum () p2)
+\end{minted}
+
+This proof can be obtained, as described in code comments, by only doing pattern matching on the (explicit) input argument of the function. (If you want to have a deeper look on implicit and explicit arguments look here \url{https://agda.readthedocs.io/en/v2.5.2/language/implicit-arguments.html#implicit-arguments}).
+Informally, when you first pattern match on \texttt{p}, Agda realizes that a value of type \texttt{HasType Γ (true +ₙ num 1) T} can only be in the form \texttt{t-sum p1 p2}, because \texttt{t-sum} is the only constructor that gives a type to terms in the form \texttt{m1 +ₙ m2}.
+Then, when you pattern match on \texttt{p1}, that has to be a value of type \texttt{HasType Γ true Nat}, Agda understands that there is no constructor (among \texttt{HasType} constructors) that gives type \texttt{Nat} to \texttt{true}.
+Hence Agda substitutes \texttt{p1} with the absurd pattern and removes the equal sign preceding the function body; there is no body to define; the function domain is empty.
+
+\vspace{1em}
+More examples, both on well typed terms and not well typed terms can be found in examples.agda.
 
 
 
