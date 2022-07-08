@@ -31,26 +31,27 @@
 
 \section{Preface}
 
-I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages at Univerity of Padova.
-In the former course I was studying how to develop formal proof using Martin-Löf's type theory while in the latter we were formalizing a functional language and its type system.
+I decided to develop this project while I was following courses of ``Type Theory" and ``Advanced topics in programming languages" at Univerity of Padova.
+In the former I was studying how to develop formal proof using Martin-Löf's Type Theory while in the latter we were formalizing a functional language and its type system.
 So I thought it was a great idea seeing how the same language and proofs about its type system can be developed in Agda.
 
 
 \subsubsection*{Agda stdlib}
 The Agda core, as a functional programming language, provides very little to programmers.
 In the Agda core there is no implementation for arrays or lists, neither there is the definition for common types such as booleans or natural numbers.
-Despite of that, list, boolean, integer and other useful types, as functions operating on those types, can be defined by the programmer itself using core features of the language.
-Actually a bunch of types and useful functions are already defined in the Agda standard library that builds on top of Agda core.
+Despite of that, List, Boolean, Integer and other useful types, as functions operating on those types, can be defined by the programmer itself using core features of the language.
+Actually a bunch of types and useful functions are already defined in the Agda standard library that builds on top of the Agda core.
 Since Agda is a proof assistant as well, the standard library contains also proofs.
-As an example, the standard library may contain: the definition of the type of natual numbers N, the definition of the binary operator +, and a proof of the commutative property for addition (a + b = b + a).
+As an example, the standard library may contain: the definition of the type of natual numbers $\mathbb{N}$, the definition of the binary operator $+$, and a proof of the commutative property for addition $a + b = b + a$.
 
 As in any other programming language, to be sufficiently productive one should learn how to leverage the standard library.
-Note how learning to use the stdlib means also to learn proofs that are already there and to train yourself on developing new proofs you need in terms of facts already proved.
+Note how learning to use the stdlib in Agda means also to learn proofs that are already there and to train yourself on developing new proofs you need in terms of facts already proved.
 Since I was new to Agda when developing this project and I wanted to deal with all small details, I decided not to use the library.
 So the project is self contained; all was developed from scratch on top of the Agda core.
+If I were to start a new project I would definitely invest time on learning the library.
 
 \vspace{1em}
-This project was for me a perfect way to improve in a single shot Agda, Martin-Löf's type theory and type systems formalization understanding and knowledge.
+This project was for me a perfect way to improve in a single shot Agda, Martin-Löf's Type Theory and type systems formalization understanding and knowledge.
 Developing the project I had both to simply formalize in Agda blackboard-proofs already done during courses and to develop new, lets say original, proofs.
 I think this project may be a fair challenge for any student interested on those topics.
 
@@ -66,14 +67,14 @@ The main feature of the language is dependent types.
 Dependent type are types that can depend (that are parameterized) on values of other types.
 
 In common mainstream programming languages such as Java we have Generics: types that depends on other types.
-As an example, in Java we can define the type List<T> that is a generic type that can be instantiated providing some other type, such as Integer or String, as parameter T.
-List<Integer> represents the type of lists containing integers as elements.
+As an example, in Java we can define the type \texttt{List<T>} that is a generic type that can be instantiated providing some other type, such as Integer or String, as parameter \texttt{T}.
+\texttt{List<Integer>} represents the type of lists containing integers as elements.
 Parameters you pass in the instantiation of generic types are always other types, they can't be values.
-In List<T>, T must be a type and can't be a value.
+In \texttt{List<T>}, \texttt{T} must be a type and can't be a value.
 
-In Agda we can define the type List : (T : Set) → (n : Nat) → Set of lists of length n containing elements of type T.
-The type List Nat 4 would be the type of lists with length 4 containing natural numbers.
-This type can't be represented in Java; the second parameter of the list type is a value of type Nat, not a type.
+In Agda we can define the type \texttt{List : (T:Set) → (n:Nat) → Set} of lists of length \texttt{n} containing elements of type \texttt{T}.
+The type \texttt{List Nat 4} would be the type of lists with length 4 containing natural numbers.
+This type can't be represented in Java; the second parameter of the list type is a value of type \texttt{Nat}, not a type.
 
 Dependent types can be used to define propositions by means of Curry–Howard correspondence, such that proofs can be developed within the language.
 In the same language we can develop useful code, such as algorithms, but also prove properties of code.
@@ -86,7 +87,7 @@ All functions that can be defined in Agda are total and computable, that is, eva
 
 The project codebase is divided in multiple files.
 The root directory contains a README.md that provides an overview of files content.
-If you are in hurry and you want just to have a glance of the project, you can start from type-system.agda.
+If you are in hurry and you want just to have a glance of the project, you can start from \texttt{./type-system.agda}.
 
 
 \section{Formalization}
@@ -105,17 +106,17 @@ data Term : Set where
   fun           : (t : Type) → (e1 : Term)   → Term
 \end{minted}
 
-One of the first thing we have to define are the terms of the language.
-Term is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
+One of the first things we have to define are the terms of the language.
+\texttt{Term} is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
 The formalized language is a basic functional language with booleans, natural numbers and the if-then-else construct.
 The same language is treated in \cite{crafa}[Ch.\ 4] and a similar one can be found in \cite[Ch.\ 9]{pierce}.
 
-The Term type has \texttt{eight} constructors.
+The \texttt{Term} type has eight constructors.
 Each constructor encodes a different way to produce a value of type \texttt{Term}.
 \texttt{true} is a constructor with no parameters that is on its own a value of type \texttt{Term}.
-\texttt{\_app\_} is another constructor that given two values of type Term as inputs, produces a new value of type \texttt{Term}.
+\texttt{\_app\_} is another constructor that given two values of type \texttt{Term} as inputs, produces a new value of type \texttt{Term}.
 \texttt{\_app\_} behaves like a function in curried form.
-The prepended and postponed \texttt{\_} makes the \texttt{\_app\_} constructor usable as in infix binary operator, such that the application of the term \texttt{m1} to the term \texttt{m2} can be written as \texttt{m1 app m2} instead of \texttt{\_app\_ m1 m2}.
+The prepended and postponed underscore (\texttt{\_}) makes the \texttt{\_app\_} constructor usable as in infix binary operator, such that the application of the term \texttt{m1} to the term \texttt{m2} can be written as \texttt{m1 app m2} instead of \texttt{\_app\_ m1 m2}.
 
 Here are some examples of valid terms.
 Observe how \texttt{tm4} is a valid term although not well typed.
@@ -133,13 +134,15 @@ The major difference between the common way of representing terms and this way r
 Variables are encoded as natural numbers (not labels) and functions don't carry along a parameter name.
 Inside a function term is only stored the type \texttt{t} of its parameter and the the body \texttt{e1} of the function.
 This way of representing terms was devised by Nicolaas de Brujin \cite[Ch.\ 6]{pierce}.
-Terms in this form are called nameless terms or de Brujin terms.
+Terms in this form are called \textit{nameless terms} or \textit{de Brujin terms}.
 
 A variable in a nameless term is an index that points to a precise enclosing lambda abstraction.
-The variable with number k stands for the "the variable bound by the k'th enclosing $\lambda$" \cite[Ch.\ 6 p.\ 76]{pierce}.
+The variable with number k stands for ``the variable bound by the k'th enclosing $\lambda$" \cite[Ch.\ 6 p.\ 76]{pierce}.
 % For example, the variable \texttt{(var 0)} in \texttt{fun Nat (fun Bool (var 0))} references the boolean parameter introduces by the innermost abstraction while \texttt{(var 1)} in \texttt{fun Nat (fun Bool (var 1))} references the integer parameter introduced by the outermost lambda.
 For example, the term \texttt{fun Nat (fun Bool (var 0))} has type \texttt{Nat→Bool→Bool} since \texttt{(var 0)} references the boolean parameter introduces by the innermost abstraction.
 \texttt{fun Nat (fun Bool (var 1))} has type \texttt{Nat→Bool→Nat} instead, because \texttt{(var 1)} references the integer parameter introduced by the outermost lambda.
+
+% TODO add an image here showing how de Brujin indices works
 
 Here is a table showing some examples of named terms and corresponding nameless terms of our language.
 For even more examples I suggest watching exercise $6.1.1$ \cite[p.\ 76]{pierce} whose solution can be found at \cite[p.\ 503]{pierce}.
@@ -193,13 +196,13 @@ env3 = Bool ∷ Nat ∷ Tarrow (Tarrow Nat Nat) Bool ∷ []
 As we will see later, the term \texttt{var 0} will be of type \texttt{Bool} in \texttt{env1} while it will be of type \texttt{Nat} in \texttt{env2}.
 This because the type assigned to variable 0 is the type with index 0 of the environment.
 
-Observe how every list of types is well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variables names.
+Observe how any list of types is a well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variables names.
 
 
 \subsection*{Free variables}
 
 With this new way of representing terms comes a new definition for free variables.
-Commonly, the set of free variables of a term is defined as the set of labels for which does not exists an enclosing abstraction that introduce that label.
+Commonly, the set of free variables of a term is defined as the set of labels for which does not exist an enclosing abstraction introducing the label.
 A variable is free when there is no abstraction that binds it.
 So the set of free variables of a term represents the smallest set of labels for which a binding must be present in the environment for there to be a possibility that the term is well typed in that environment.
 $\lambda x. x + y$ may be well typed only in an environment that contains a binding at least for the label $y$.
@@ -246,7 +249,7 @@ data HasType : Env → Term → Type → Set where
 
 To encode typing rules we define the dependent type \texttt{HasType}.
 \texttt{HasType} depends on a value of type \texttt{Env}, on a term and on a type of our language.
-The type \texttt{HasType $\Gamma$ M T} corresponds to the following proposition:
+The type \texttt{HasType Γ M T} corresponds to the following proposition:
 
 \vspace{1em}
 \textit{In environment $\Gamma$, the term $M$ has type $T$.}
@@ -266,13 +269,13 @@ The three constructors can be red like this:
 
 \item For any environment \texttt{Γ} and any natural number \texttt{n} the \texttt{t-nat} constructor can produce a proof that the term \texttt{(num n)} has type \texttt{Nat} in \texttt{Γ}.
 
-\item The \texttt{t-var} constructor can prove that the term \texttt{(var x)} has type \texttt{t} if I can provide to it as input a proof (\texttt{p}) that x'th elements in the environment is the type \texttt{t}.
+\item The \texttt{t-var} constructor can prove that the term \texttt{(var x)} has type \texttt{t} if you can provide to it as input a proof (\texttt{p}) that x'th elements in the environment is the type \texttt{t}.
 \texttt{getIdx} is simply a function that picks up the element that sits on a given index of a list.
 
 \item The \texttt{t-fun} constrctor is interesting because it let us prove something about an environment \texttt{Γ}, if we are able to produce a proof dealing with a bigger environment \texttt{t1 ∷ Γ}.
 In particular we can say that the term \texttt{(fun t1 m)} has type \texttt{Tarrow t1 t2} if we are able to produce a proof term showing that in the environment obtained prepending \texttt{t1} to \texttt{Γ}, we can say that the body of the function has type \texttt{t2}.
 
-Note as in the rule $\text{T-FUN}$ environments are expanded appending a new binding on the right while in the constructor \texttt{t-fun} environments are expanded prepending new types on the left; but this is just a matter of syntax.
+Note as in the rule \texttt{T-FUN}, environments are expanded appending a new binding on the right while in the constructor \texttt{t-fun} environments are expanded prepending new types on the left; but this is just a matter of syntax.
 
 \end{itemize}
 
@@ -334,13 +337,13 @@ Since there is no constructor for the empty type, there is no way to produce a v
 
 The type of the proposition $P \implies false$ is \texttt{P → ⊥}, whose elements are functions mapping values of type \texttt{P} in values of type \texttt{⊥}.
 To prove $P \implies false$ we have to write down a function that produces values of type \texttt{⊥} when values of type \texttt{P} are provided as inputs.
-But there is apparently no way to construct a values of type \texttt{⊥}, so how does it works ?
+But there is apparently no way to construct a values of type \texttt{⊥}, so how does it work ?
 
-It turns out that we can actually write down a valid function that "produces elements" of type \texttt{⊥} if we show that the domain of the function is empty.
-Agda marks the domain of a function as "clearly empty" using the absurd pattern (see \url{https://agda.readthedocs.io/en/v2.5.2/language/function-definitions.html#absurd-patterns} for more details).
-Most of the time the absurd pattern pops out doing pattern matching on input parameters of the function.
+It turns out that we can actually write down a valid function that ``produces elements" of type \texttt{⊥} if we show that the domain of the function is empty.
+Agda marks the domain of a function as ``clearly empty" using the absurd pattern (see \url{https://agda.readthedocs.io/en/v2.5.2/language/function-definitions.html#absurd-patterns} for more details).
+Most of the time the absurd pattern pops out doing pattern matching on input arguments of the function.
 
-Trivially we can write a function from bottom to bottom.
+Trivially we can write a function from the empty type to the empty type.
 The bottom type is clearly an empty domain.
 
 \begin{minted}{agda}
@@ -364,7 +367,7 @@ fun-foo 0 c1 ()
 A value of type \texttt{foo1} can only be in the form \texttt{c1}, and this fixes \texttt{n=0}.
 Then there is no constructor that can build a value of type \texttt{(foo2 0)} and the absurd pattern mark this fact.
 
-Actually, when you have a function with an empty domain, you can "produce values" of whatever type you like.
+Actually, when you have a function with an empty domain, you can ``produce values" of whatever type you like.
 In the two preceding examples you can replace the rightmost \texttt{⊥} with the type you want, and all still works.
 This brings us to the \texttt{absurd} function, corresponding to the proposition $false \implies P$ for any $P$, used sometimes in the project.
 
@@ -395,13 +398,13 @@ pt2 (t-sum () p2)
 -- pt2 (t-sum () p2)
 \end{minted}
 
-This proof can be obtained, as described in code comments, by only doing pattern matching on the (explicit) input argument of the function. (If you want to have a deeper look on implicit and explicit arguments look here \url{https://agda.readthedocs.io/en/v2.5.2/language/implicit-arguments.html#implicit-arguments}).
+This proof can be obtained, as described in code comments, by only doing pattern matching on the (explicit) input argument of the function. (If you want to have a deeper look on implicit and explicit arguments, look here \url{https://agda.readthedocs.io/en/v2.5.2/language/implicit-arguments.html#implicit-arguments}).
 Informally, when you first pattern match on \texttt{p}, Agda realizes that a value of type \texttt{HasType Γ (true +ₙ num 1) T} can only be in the form \texttt{t-sum p1 p2}, because \texttt{t-sum} is the only constructor that gives a type to terms in the form \texttt{m1 +ₙ m2}.
 Then, when you pattern match on \texttt{p1}, that has to be a value of type \texttt{HasType Γ true Nat}, Agda understands that there is no constructor (among \texttt{HasType} constructors) that gives type \texttt{Nat} to \texttt{true}.
 Hence Agda substitutes \texttt{p1} with the absurd pattern and removes the equal sign preceding the function body; there is no body to define; the function domain is empty.
 
 \vspace{1em}
-More examples, both on well typed terms and not well typed terms can be found in examples.agda.
+More examples, both on well typed terms and not well typed terms can be found in \texttt{./examples.agda}.
 
 
 
