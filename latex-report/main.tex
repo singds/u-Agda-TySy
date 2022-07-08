@@ -4,6 +4,8 @@
 \usepackage{amsfonts}
 \usepackage{minted} % for code fragments
 \usepackage{fontspec}
+\usepackage{tcolorbox}
+\usepackage[hidelinks]{hyperref}
 \usepackage{mathpartir} % for typing rules and derivation trees
 \usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage[
@@ -13,7 +15,8 @@
 ]{biblatex}
 
 
-\setminted[agda]{encoding=utf8, linenos}
+% add "linenos" to enable line numbers
+\setminted[agda]{encoding=utf8}
 \setmonofont[Scale=0.84]{DejaVu Sans Mono}
 \addbibresource{bibliography.bib}
 
@@ -28,7 +31,7 @@
 
 \section{Preface}
 
-I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages in Univerity of Padova.
+I decided to develop this project while I was following courses of Type Theory and Advanced topics in programming languages at Univerity of Padova.
 In the former course I was studying how to develop formal proof using Martin-Löf's type theory while in the latter we were formalizing a functional language and its type system.
 So I thought it was a great idea seeing how the same language and proofs about its type system can be developed in Agda.
 
@@ -308,9 +311,43 @@ We can also prove that a term is not well typed.
 \textit{We say that a term $M$ is well typed if exists an environment $\Gamma$ and a type $T$ such that the judgement $\Gamma \vdash M : T$ is derivable.}
 \vspace{1em}
 
-Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable.
-The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}.
+Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable (De Morgan’s laws for quantifiers).
+
+\[
+\neg \exists \; x \; P(x) \iff \forall \; x \; \neg P(x)
+\]
+
+\begin{tcolorbox}
+\subsubsection*{Proving negations}
+
+Since here we have to prove that something does not hold, I want to make a little digression about it.
+In Agda, to prove that a proposition $P$ does not hold, we proceed by proving $P \implies false$.
+The $false$ proposition is represented as the empty type \texttt{⊥} (also called bottom type), a type with no constructors.
+
+\begin{minted}{agda}
+data ⊥ : Set where
+\end{minted}
+
+Since there is no constructor for the empty type, there is no way to produce a value of that type and hence there is no way to prove the corresponding proposition.
+
+The type of the proposition $P \implies false$ is \texttt{P → ⊥}, whose elements are functions mapping values of type \texttt{P} in values of type \texttt{⊥}.
+To prove $P \implies false$ we have to write down a function that produces values of type \texttt{⊥} when values of type \texttt{P} are provided as inputs.
+But there is apparently no way to construct a values of type \texttt{⊥}, so how does it works ?
+
+It turns out that we can actually "produce elements" of type \texttt{⊥} with a function whose domain is clearly empty.
+Agda marks the domain of a function as "clearly empty" using the absurd pattern (see \url{https://agda.readthedocs.io/en/v2.5.2/language/function-definitions.html#absurd-patterns} for more details).
+Most of the time the absurd pattern pops out doing pattern matching on input parameters of the function.
+
+
+\end{tcolorbox}
+
+
+The proposition $\forall \; \Gamma \in \text{Env} \; \forall \; T \in \text{Type} \; \neg (\Gamma \vdash M : T \text{ is derivable})$ is represented by the dependent type \texttt{(Γ:Env) → (T:Type) → HasType Γ M T → ⊥}, where \texttt{⊥} is the empty type (bottom type) that has no constructors.
+The type can be read in this way: for every \texttt{Γ} and every \texttt{T}, having a value of type \texttt{HasType Γ M T} is impossible.
 To prove the proposition we have to write down a term of that type.
+
+
+
 
 \newpage
 \nocite{*}
