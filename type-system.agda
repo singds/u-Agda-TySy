@@ -257,10 +257,20 @@ subst j s (m1 +ₙ m2)   = (subst j s m1) +ₙ (subst j s m2)
 subst j s (if m1 then m2 else m3)
   = if (subst j s m1) then (subst j s m2) else (subst j s m3)
 
+-- Definition of the beta reduction function.
+-- The function transforms the first input term (the body of the function)
+-- and the second input term (the argument of the function), in a
+-- new term.
+--
+-- Beta reduction is defined using shift operations.
+beta-reduction : Term   -- function's body
+               → Term   -- the argument of the function
+               → Term
+beta-reduction M N = shift-back 1 0 (subst 0 (shift 1 0 N) M)
+
 -- Evaluation judgement.
 -- The dependent type M ⇒ M' corresponds to the following judgement:
 --     The term M evaluates to the term M' in one step.
--- Note as beta reduction is defined using the shift operations.
 data _⇒_ : Term → Term → Set where
   e-app1     : {m1 m1' m2 : Term}
              → (p1 : m1 ⇒ m1')
@@ -273,7 +283,7 @@ data _⇒_ : Term → Term → Set where
 
   e-beta     : {t : Type} {e1 v2 : Term}
              → (p1 : Value v2)
-             → ((fun t e1) app v2) ⇒ shift-back 1 0 (subst 0 (shift 1 0 v2) e1)
+             → ((fun t e1) app v2) ⇒ beta-reduction e1 v2
 
   e-sum-l    : {m1 m1' m2 : Term}
              → (p1 : m1 ⇒ m1')

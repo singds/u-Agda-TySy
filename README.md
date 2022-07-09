@@ -9,3 +9,5 @@ The project is divided in multiple files:
 - `examples.agda` contains examples of type judgments or evaluation judgments.
 
 I suggest to start the reading from `type-system.agda` and then to switch to other files as needed.
+
+The latex compiler used is xelatex.

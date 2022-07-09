@@ -255,6 +255,7 @@ The type \texttt{HasType Γ M T} corresponds to the following proposition:
 \textit{In environment $\Gamma$, the term $M$ has type $T$.}
 \vspace{1em}
 
+\noindent
 \texttt{HasType} can be seen as a function that accepts three arguments and produces a value of type \texttt{Set}, that is a type.
 \texttt{Set} is the type of small types.
 An elements of type \texttt{HasType Γ M T} corresponds to a witness that the term \texttt{M} has type \texttt{T} in the environment \texttt{Γ}.
@@ -311,9 +312,11 @@ pt1 = t-var refl
 We can also prove that a term is not well typed.
 
 \vspace{1em}
+\noindent
 \textit{We say that a term $M$ is well typed if exists an environment $\Gamma$ and a type $T$ such that the judgement $\Gamma \vdash M : T$ is derivable.}
 \vspace{1em}
 
+\noindent
 Proving that this is not the case is equivalent to proving that for any environment $\Gamma$ and any type $T$ the judgement $\Gamma \vdash M : T$ is not derivable (De Morgan’s laws for quantifiers).
 
 \[
@@ -398,6 +401,7 @@ pt2 (t-sum () p2)
 -- pt2 (t-sum () p2)
 \end{minted}
 
+\noindent
 This proof can be obtained, as described in code comments, by only doing pattern matching on the (explicit) input argument of the function. (If you want to have a deeper look on implicit and explicit arguments, look here \url{https://agda.readthedocs.io/en/v2.5.2/language/implicit-arguments.html#implicit-arguments}).
 Informally, when you first pattern match on \texttt{p}, Agda realizes that a value of type \texttt{HasType Γ (true +ₙ num 1) T} can only be in the form \texttt{t-sum p1 p2}, because \texttt{t-sum} is the only constructor that gives a type to terms in the form \texttt{m1 +ₙ m2}.
 Then, when you pattern match on \texttt{p1}, that has to be a value of type \texttt{HasType Γ true Nat}, Agda understands that there is no constructor (among \texttt{HasType} constructors) that gives type \texttt{Nat} to \texttt{true}.
@@ -407,6 +411,103 @@ Hence Agda substitutes \texttt{p1} with the absurd pattern and removes the equal
 More examples, both on well typed terms and not well typed terms can be found in \texttt{./examples.agda}.
 
 
+\subsection*{Reduction rules}
+
+\begin{minted}{agda}
+data _⇒_ : Term → Term → Set where
+  e-app1     : {m1 m1' m2 : Term}
+             → (p1 : m1 ⇒ m1')
+             → (m1 app m2) ⇒ (m1' app m2)
+
+  e-app2     : {v1 m2 m2' : Term}
+             → (p1 : Value v1)
+             → (p2 : m2 ⇒ m2')
+             → (v1 app m2) ⇒ (v1 app m2')
+
+  e-beta     : {t : Type} {e1 v2 : Term}
+             → (p1 : Value v2)
+             → ((fun t e1) app v2) ⇒ beta-red e1 v2
+
+-- ... some cut content here
+\end{minted}
+
+We define reduction rules with the dependent type \texttt{\_⇒\_}.
+An instance of this type \texttt{(M ⇒ M')} corresponds to the proposition:
+
+\vspace{1em}
+\noindent
+\textit{The term $M$ reduces in one step to the term $M'$.}
+\vspace{1em}
+
+\noindent
+A complete list of typing rules can be found in \cite[p.\ 8]{crafa}, here I report only what necessary for the discussion.
+
+
+\begin{mathpar}
+
+\inferrule[(APP1)]
+{M \longrightarrow M'}
+{M \; N \longrightarrow M' \; N}
+
+\and
+
+\inferrule[(APP2)]
+{M \longrightarrow M'}
+{v \; M \longrightarrow v \; M'}
+
+\inferrule[(BETA)]
+{ }
+{\lambda x.M \longrightarrow M\{ x := v \}}
+
+\end{mathpar}
+
+The \texttt{e-app1} constructor is a function able to prove that $M_1 \; M_2$ reduces in one step to $M_1' \; M_2$ if we are able to provide a proof term for \texttt{m1 ⇒ m1'}.
+\texttt{e-app2} is similar, but observe how the left hand side of the application is forced to be a value with the input parameter \texttt{p1} of type \texttt{Value v1}.
+\texttt{Value M} encodes the proposition:
+
+\vspace{1em}
+\noindent
+\textit{The term $M$ is a value.}
+\vspace{1em}
+
+\noindent
+Beta reduction is the trickiest part and has to be rethought for nameless terms.
+The beta reduction transformation of a term must preserve the type of the term:
+
+\vspace{1em}
+\noindent
+\textit{If $\Gamma \vdash (\lambda x:T_1.M) \; N : T_2$ is derivable, also $\Gamma \vdash M\{x:=N\} : T_2$ must be derivable.}
+\vspace{1em}
+
+\noindent
+This property is needed to prove the subject reduction theorem.
+Beta reduction for nameless terms has to respect the same property:
+
+\vspace{1em}
+\noindent
+\textit{If} \texttt{HasType Γ ((fun T1 M) app N) T2} \textit{is provable, also} \texttt{HasType Γ (beta-red M N) T2} \textit{must be provable.}
+\vspace{1em}
+
+\noindent
+With \texttt{beta-red} we denote the function (\texttt{Term → Term → Term}) that transforms the body and the argument of the abstraction in a new term.
+
+\begin{minted}{agda}
+beta-red : Term   -- function's body
+         → Term   -- the argument of the function
+         → Term
+beta-red M N = shift-back 1 0 (subst 0 (shift 1 0 N) M)
+\end{minted}
+
+\noindent
+The reason why beta reduction is defined in this way is explained in \cite[Ch.\ 6]{pierce}, where also subroutines used by the function are described.
+This definition respects the above property, and proving it is probably the hardest part of the project.
+
+
+% As an examle, consider the derivable judgment $x:\text{Bool} \vdash (\lambda y:\text{Bool}. x) \; \text{true} : \text{Bool}$, then $x:\text{Bool} \vdash x\{y:=\text{true}\} : \text{Bool}$ is also derivable.
+%
+% In nameless terms, if the proposition \texttt{HasType (Bool ∷ []) ((fun Bool (var 1)) app true) Bool} is provable, also \texttt{HasType (Bool ∷ []) (beta (var 1) true)) Bool} must be provable; where with \texttt{beta} we identify the beta reduction function that transform two input terms in a new term.
+% The we want a \texttt{beta M v}   also \texttt{HasType (Bool ∷ []) (beta (var 1) true)) Bool} must be derivable.
+% One may think to implement the function $M\{x:=v\}$ for nameless terms by simply substituting all the free variables of $M$ that points to index 0 of the environment with the term $v$, but this is not % correct.
 
 \newpage
 \nocite{*}
