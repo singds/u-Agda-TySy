@@ -312,7 +312,7 @@ data _⇒_ : Term → Term → Set where
 -- ⇒ Γ,tu,Γ₁ ⊢ ↑[1,len(Γ₁)] m : tm
 weakening-2 : {Γ : Env} {Γ₁ : Env} {m : Term} {tm tu : Type}
         → HasType (Γ₁ ++ Γ) m tm
-        → HasType (Γ₁ ++ (tu ∷ Γ)) (shift one (len Γ₁) m) tm
+        → HasType (Γ₁ ++ (tu ∷ Γ)) (shift 1 (len Γ₁) m) tm
 weakening-2 t-true           = t-true
 weakening-2 t-false          = t-false
 weakening-2 t-nat            = t-nat
@@ -337,20 +337,12 @@ weakening-2 {Γ} {Γ₁} {var x} {tm} {tu} (t-var {_} {i} p1)
 -- of the term and add a dummy type to the context. The new term would keep the same
 -- type in the new context.
 -- I'm weakening the context because I'm adding unneeded information.
-weakening : {Γ : Env} {m : Term} {t tu : Type}
-        → HasType Γ m t
-        → HasType (tu ∷ Γ) (shift one zero m) t
-weakening t-true             = t-true
-weakening t-false            = t-false
-weakening t-nat              = t-nat
-weakening (t-app p1 p2)      = t-app (weakening p1) (weakening p2)
-weakening (t-sum p1 p2)      = t-sum (weakening p1) (weakening p2)
-weakening (t-if p1 p2 p3)    = t-if  (weakening p1) (weakening p2) (weakening p3)
-weakening (t-fun p)          = t-fun (weakening-2 p)
-weakening {Γ} {var x} (t-var p)
-  with x <? zero
-... | right p2
-  rewrite symm+ x (succ zero) = t-var p
+--
+-- weakening is just a special case of weakening-2
+weakening : {Γ : Env} {M : Term} {T Tu : Type}
+        → HasType Γ M T
+        → HasType (Tu ∷ Γ) (shift 1 0 M) T
+weakening = weakening-2
 
 
 -- Γ,S,Γ₁ ⊢ M : T      and
@@ -361,18 +353,18 @@ weakening {Γ} {var x} (t-var p)
 -- and in Δ I have the type S at index <i>,
 -- then the term I obtain substituting the free variable <i> of M with N, keeps
 -- the same type T in Δ.
-substitution : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
+substitution-2 : {Γ Γ₁ : Env} {S T : Type} {M N : Term}
         → HasType (Γ₁ ++ (S ∷ Γ)) M T
         → HasType (Γ₁ ++ (S ∷ Γ)) N S
         → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
-substitution t-true  p2         = t-true
-substitution t-false p2         = t-false
-substitution t-nat   p2         = t-nat
-substitution (t-app p1 p2) p3   = t-app (substitution p1 p3) (substitution p2 p3)
-substitution (t-sum p1 p2) p3   = t-sum (substitution p1 p3) (substitution p2 p3)
-substitution (t-fun p1) p2      = t-fun (substitution p1 (weakening p2))
-substitution (t-if p1 p2 p3) p4 = t-if  (substitution p1 p4) (substitution p2 p4) (substitution p3 p4)
-substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2
+substitution-2 t-true  p2         = t-true
+substitution-2 t-false p2         = t-false
+substitution-2 t-nat   p2         = t-nat
+substitution-2 (t-app p1 p2) p3   = t-app (substitution-2 p1 p3) (substitution-2 p2 p3)
+substitution-2 (t-sum p1 p2) p3   = t-sum (substitution-2 p1 p3) (substitution-2 p2 p3)
+substitution-2 (t-fun p1) p2      = t-fun (substitution-2 p1 (weakening p2))
+substitution-2 (t-if p1 p2 p3) p4 = t-if  (substitution-2 p1 p4) (substitution-2 p2 p4) (substitution-2 p3 p4)
+substitution-2 {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2
   with x ≡? (len Γ₁)
 ... | left  p
   rewrite eq-idx-in-second Γ₁ (S ∷ Γ) x (x≡y-to-x≥y x (len Γ₁) p)
@@ -380,6 +372,13 @@ substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2
         | eq-opt-some-to-val p1 = p2
 ... | right p                   = t-var p1
 
+
+-- substitution is just a special case of substitution-2
+substitution : {Γ : Env} {S T : Type} {M N : Term}
+        → HasType (S ∷ Γ) M T
+        → HasType (S ∷ Γ) N S
+        → HasType (S ∷ Γ) (subst 0 N M) T
+substitution = substitution-2
 
 
 -- Γ,S,Γ₁ ⊢ M : T
@@ -393,26 +392,26 @@ substitution {Γ} {Γ₁} {S} (t-var {_} {x} p1) p2
 -- We are somehow strengthening the context removing useless assumptions.
 -- It is useless to assume type S for a variable <i> if that variable doesn't
 -- appear in the term.
-strengthening : {t : Type} (Γ : Env) (tu : Type) (Γ₁ : Env) (m : Term)
+strengthening-2 : {t tu : Type} {Γ Γ₁ : Env} {m : Term}
         → HasType (Γ₁ ++ (tu ∷ Γ)) m t
         → len (Γ₁) ∉ (fv m)
-        → HasType (Γ₁ ++ Γ) (shift-back one (len Γ₁) m) t
-strengthening Γ tu Γ₁ true    t-true  p2 = t-true
-strengthening Γ tu Γ₁ false   t-false p2 = t-false
-strengthening Γ tu Γ₁ (num n) t-nat   p2 = t-nat
-strengthening Γ tu Γ₁ (m1 app m2) (t-app p1 p2) lenΓ₁-∉-fvM = 
+        → HasType (Γ₁ ++ Γ) (shift-back 1 (len Γ₁) m) t
+strengthening-2 t-true  p2 = t-true
+strengthening-2 t-false p2 = t-false
+strengthening-2 t-nat   p2 = t-nat
+strengthening-2 (t-app p1 p2) lenΓ₁-∉-fvM = 
     t-app
-      (strengthening Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  lenΓ₁-∉-fvM))
-      (strengthening Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second lenΓ₁-∉-fvM))
-strengthening Γ tu Γ₁ (m1 +ₙ m2) (t-sum p1 p2) lenΓ₁-∉-fvM = 
+      (strengthening-2 p1 (not-in-concat-not-in-first  lenΓ₁-∉-fvM))
+      (strengthening-2 p2 (not-in-concat-not-in-second lenΓ₁-∉-fvM))
+strengthening-2 (t-sum p1 p2) lenΓ₁-∉-fvM = 
     t-sum
-      (strengthening Γ tu Γ₁ m1 p1 (not-in-concat-not-in-first  lenΓ₁-∉-fvM))
-      (strengthening Γ tu Γ₁ m2 p2 (not-in-concat-not-in-second lenΓ₁-∉-fvM))
-strengthening Γ tu Γ₁ (if m1 then m2 else m3) (t-if p1 p2 p3) lenΓ₁-∉-fvM =
+      (strengthening-2 p1 (not-in-concat-not-in-first  lenΓ₁-∉-fvM))
+      (strengthening-2 p2 (not-in-concat-not-in-second lenΓ₁-∉-fvM))
+strengthening-2 {_} {_} {_} {Γ₁} (t-if {_} {m1} {m2} {m3} p1 p2 p3) lenΓ₁-∉-fvM =
     t-if
-      (strengthening Γ tu Γ₁ m1 p1 lenΓ₁-∉-fvm1)
-      (strengthening Γ tu Γ₁ m2 p2 lenΓ₁-∉-fvm2)
-      (strengthening Γ tu Γ₁ m3 p3 lenΓ₁-∉-fvm3)
+      (strengthening-2 p1 lenΓ₁-∉-fvm1)
+      (strengthening-2 p2 lenΓ₁-∉-fvm2)
+      (strengthening-2 p3 lenΓ₁-∉-fvm3)
     where
     lenΓ₁-∉-fvm1++fvm2 : len Γ₁ ∉ (fv m1 ++ fv m2)
     lenΓ₁-∉-fvm1++fvm2 = not-in-concat-not-in-first lenΓ₁-∉-fvM
@@ -427,9 +426,9 @@ strengthening Γ tu Γ₁ (if m1 then m2 else m3) (t-if p1 p2 p3) lenΓ₁-∉-f
     lenΓ₁-∉-fvm3 : len Γ₁ ∉ (fv m3)
     lenΓ₁-∉-fvm3 = not-in-concat-not-in-second lenΓ₁-∉-fvM
       
-strengthening Γ tu Γ₁ (fun tx m) (t-fun p1) lenΓ₁-∉-fvM =
-    t-fun (strengthening Γ tu (tx ∷ Γ₁) m p1 (notin-dec-not-succ-in-list' lenΓ₁-∉-fvM))
-strengthening Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) lenΓ₁-∉-fvM
+strengthening-2 (t-fun p1) lenΓ₁-∉-fvM =
+    t-fun (strengthening-2 p1 (notin-dec-not-succ-in-list' lenΓ₁-∉-fvM))
+strengthening-2 {_} {tu} {Γ} {Γ₁} (t-var {_} {x} {t} p1) lenΓ₁-∉-fvM
   with x <? len(Γ₁)
 ... | left  p
   rewrite eq-idx-in-first Γ₁ (tu ∷ Γ) x p
@@ -444,6 +443,14 @@ strengthening Γ tu Γ₁ (var x) (t-var {_} {_} {t} p1) lenΓ₁-∉-fvM
 
   p-getIdx : getIdx (Γ₁ ++ Γ) (pred x) ≡ some t
   p-getIdx rewrite eq-idx-second-rem-from-center Γ₁ tu Γ x x->-len = p1
+
+
+-- strengthening is just a special case of strengthening-2
+strengthening : {T Tu : Type} {Γ : Env} {M : Term}
+        → HasType (Tu ∷ Γ) M T
+        → 0 ∉ (fv M)
+        → HasType Γ (shift-back 1 0 M) T
+strengthening = strengthening-2
 
 
 
@@ -571,13 +578,14 @@ type-preservation (t-if p1 p2 p3) e-if-true
 type-preservation (t-if p1 p2 p3) e-if-false
   = p3
 type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta {_} {e1} {v2} p)
-  = strengthening Γ t1 [] subst-term (substitution p1 (weakening p3)) zero-notin-fv-subst-term
+ = strengthening (substitution p1 (weakening p3)) zero-notin-fv-subst-term
   where
   subst-term : Term
-  subst-term = subst zero (shift (succ zero) zero v2) e1
+  subst-term = subst 0 (shift 1 0 v2) e1
 
-  zero-notin-fv-subst-term : ¬ (zero ∈ fv subst-term)
-  zero-notin-fv-subst-term = not-in-fv' zero e1 (not-in-fv zero v2)
+  zero-notin-fv-subst-term : ¬ (0 ∈ fv subst-term)
+  zero-notin-fv-subst-term = not-in-fv' 0 e1 (not-in-fv 0 v2)
+
 
 
 
