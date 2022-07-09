@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{minted} % for code fragments
 \usepackage{fontspec}
@@ -14,6 +15,8 @@
     sorting=ynt
 ]{biblatex}
 
+% \newtheorem{lemma}{Lemma}
+
 
 % add "linenos" to enable line numbers
 \setminted[agda]{encoding=utf8}
@@ -25,6 +28,11 @@
 \date{June 2022}
 
 \begin{document}
+
+\newtheorem*{wek}{Weakening}
+\newtheorem*{sub}{Substitution}
+\newtheorem*{str}{Strengthening}
+\newtheorem{stat}{}[section]
 
 \maketitle
 
@@ -483,10 +491,10 @@ The beta reduction transformation of a term must preserve the type of the term:
 This property is needed to prove the subject reduction theorem.
 Beta reduction for nameless terms has to respect the same property:
 
-\vspace{1em}
-\noindent
+\begin{stat}
+\label{type-pres-beta}
 \textit{If} \texttt{HasType Γ ((fun T1 M) app N) T2} \textit{is provable, also} \texttt{HasType Γ (beta-red M N) T2} \textit{must be provable.}
-\vspace{1em}
+\end{stat}
 
 \noindent
 With \texttt{beta-red} we denote the function (\texttt{Term → Term → Term}) that transforms the body and the argument of the abstraction in a new term.
@@ -502,12 +510,70 @@ beta-red M N = shift-back 1 0 (subst 0 (shift 1 0 N) M)
 The reason why beta reduction is defined in this way is explained in \cite[Ch.\ 6]{pierce}, where also subroutines used by the function are described.
 This definition respects the above property, and proving it is probably the hardest part of the project.
 
+The proof can be divided in three steps that I'm going to describe informally:
 
-% As an examle, consider the derivable judgment $x:\text{Bool} \vdash (\lambda y:\text{Bool}. x) \; \text{true} : \text{Bool}$, then $x:\text{Bool} \vdash x\{y:=\text{true}\} : \text{Bool}$ is also derivable.
-%
-% In nameless terms, if the proposition \texttt{HasType (Bool ∷ []) ((fun Bool (var 1)) app true) Bool} is provable, also \texttt{HasType (Bool ∷ []) (beta (var 1) true)) Bool} must be provable; where with \texttt{beta} we identify the beta reduction function that transform two input terms in a new term.
-% The we want a \texttt{beta M v}   also \texttt{HasType (Bool ∷ []) (beta (var 1) true)) Bool} must be derivable.
-% One may think to implement the function $M\{x:=v\}$ for nameless terms by simply substituting all the free variables of $M$ that points to index 0 of the environment with the term $v$, but this is not % correct.
+\begin{minted}{agda}
+-- 1)
+weakening : {Γ : Env} {M : Term} {T Tu : Type}
+        → HasType Γ M T
+        → HasType (Tu ∷ Γ) (shift 1 0 M) T
+weakening = -- ... prove this somehow
+
+-- 2)
+substitution : {Γ : Env} {S T : Type} {M N : Term}
+        → HasType (S ∷ Γ) M T
+        → HasType (S ∷ Γ) N S
+        → HasType (S ∷ Γ) (subst 0 N M) T
+substitution = -- ... prove this somehow
+
+-- 3)
+strengthening : {T : Type} (Γ : Env) (Tu : Type) (M : Term)
+        → HasType (Tu ∷ Γ) M T
+        → 0 ∉ (fv M)
+        → HasType Γ (shift-back 1 0 M) T
+strengthening = -- ... prove this somehow
+\end{minted}
+
+
+
+\begin{enumerate}
+    \item
+    \begin{wek}
+    If \textnormal{\texttt{Γ ⊢ M : T}} is derivable, then \textnormal{\texttt{Tu ∷ Γ ⊢ ↑¹ M : T}} is derivable for any type \textnormal{\texttt{Tu}}.
+    \end{wek}
+    
+    Where \texttt{(↑¹ M) = (shift 1 0 M)}.
+    
+    We can convince ourselves of the veracity of this lemma if we think about what the shift function does.
+    \texttt{↑ᵏ} applied to a term \texttt{M} outputs a new term that is \texttt{M} with all its free variables incremented by $k$.
+    So the term obtained by increasing all the free variables of \texttt{M} by 1, maintains the same type if we type it in an environment enriched with some new type in head.
+    If a free variable of \texttt{M} points to the type with index $i$ in \texttt{Γ}, the same variable in \texttt{(↑¹ M)} points to the type with index $i+1$ in \texttt{Tu ∷ Γ}.
+    Also, if \texttt{T} is the type at index $i$ in gamma, \texttt{T} is at index $i+1$ in \texttt{Tu ∷ Γ}.
+    Therefore, every free variable of \texttt{(↑¹ M)} points inside \texttt{Tu ∷ Γ} to the same type the same free variable of \texttt{M} points inside \texttt{Γ}.
+    The statement is so justified.
+
+    \item
+    \begin{sub}
+    If \textnormal{\texttt{S ∷ Γ ⊢ M : T}} and \textnormal{\texttt{S ∷ Γ ⊢ N : S}} are derivable, then \textnormal{\texttt{S ∷ Γ ⊢ [0 ↦ N]M : T}} is derivable.
+    \end{sub}
+    
+    Where \texttt{([0 ↦ N]M) = (subst 0 N M)}.
+    
+    Here we are substituting all the free variables of \texttt{M} that points to the type \texttt{S}, with a term \texttt{N} of the same type.
+    It should be easy to agree that this is provable.
+    
+    \item
+    \begin{str}
+    If \textnormal{\texttt{Tu ∷ Γ ⊢ M : T}} is derivable and \textnormal{\texttt{0 ∉ (fv M)}}, then \textnormal{\texttt{Γ ⊢ ↑⁻¹ M : T}} is derivable.
+    \end{str}
+    
+    Where \texttt{(↑⁻¹ M) = (shift-back 1 0 M)}.
+    
+    Here we say that if there is no free variable in \texttt{M} that points to the first type of the environment, then we can decrement by one all the free variables of \texttt{M} and remove the type at the environment's head.
+    The new term in the new context will preserve the type.
+\end{enumerate}
+
+Combining the three lemmas we can prove \ref{type-pres-beta}.
 
 \newpage
 \nocite{*}
