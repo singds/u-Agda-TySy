@@ -273,7 +273,7 @@ data _⇒_ : Term → Term → Set where
 
   e-beta     : {t : Type} {e1 v2 : Term}
              → (p1 : Value v2)
-             → ((fun t e1) app v2) ⇒ shift-back 1 0 (subst 0 (shift 1 0 v2) e1)
+             → ((fun t e1) app v2) ⇒ subst 0 v2 e1
 
   e-sum-l    : {m1 m1' m2 : Term}
              → (p1 : m1 ⇒ m1')
@@ -535,15 +535,62 @@ not-in-fv' {s} k (fun t m) p1
         (notin-after-remove zero (not-in-fv' (succ k) m (not-in-fv'' {zero} {k} {s} p1 λ ())))
         (x-notin-list-remove-x zero (fv (subst (succ k) (shift one zero s) m)))
 
+shift-on-closed : {m : Term} {k : ℕ}
+                → (fv m) ≡ []
+                → (shift k k m) ≡ m
+shift-on-closed {true} p     = refl
+shift-on-closed {false} p    = refl
+shift-on-closed {num n} p    = refl
+shift-on-closed {if m then m₁ else m₂} p = {!!}
+shift-on-closed {m +ₙ m₁} p = {!!}
+shift-on-closed {m app m₁} p = {!!}
+shift-on-closed {fun t m} p = {!!}
+
+
+
+{-
+weakening : {m : Term} {t tu : Type}
+        → HasType [] m t
+        → HasType (tu ∷ Γ) (shift one zero m) t
+weakening t-true             = t-true
+weakening t-false            = t-false
+weakening t-nat              = t-nat
+weakening (t-app p1 p2)      = t-app (weakening p1) (weakening p2)
+weakening (t-sum p1 p2)      = t-sum (weakening p1) (weakening p2)
+weakening (t-if p1 p2 p3)    = t-if  (weakening p1) (weakening p2) (weakening p3)
+weakening (t-fun p)          = t-fun (weakening-2 p)
+weakening {Γ} {var x} (t-var p)
+  with x <? zero
+... | right p2
+  rewrite symm+ x (succ zero) = t-var p
+-}
+
+substitution'' : {Γ₁ Γ : Env} {M N : Term} {S T : Type}
+               → HasType (Γ₁ ++ (S ∷ Γ)) M T
+               → HasType [] N S
+               → HasType (Γ₁ ++ (S ∷ Γ)) (subst (len Γ₁) N M) T
+substitution'' t-true p2          = t-true
+substitution'' t-false p2         = t-false
+substitution'' t-nat p2           = t-nat
+substitution'' (t-sum p1 p3) p2   = t-sum (substitution'' p1 p2) (substitution'' p3 p2)
+substitution'' {Γ₁} {Γ} {_} {_} {S} (t-var {_} {x} p1) p2      with x ≡? (len Γ₁)
+... | left  p3 rewrite eq-idx-in-second Γ₁ (S ∷ Γ) x (x≡y-to-x≥y x (len Γ₁) p3)
+        | x≡y-to-x-y≡0 x (len Γ₁) p3
+        | eq-opt-some-to-val p1 = {!!} -- easy
+... | right p3 = t-var p1 -- this is a simple absurd: p1 is absurd since x ≢ 0
+substitution'' (t-app p1 p3) p2   = t-app (substitution'' p1 p2) (substitution'' p3 p2)
+substitution'' (t-fun p1) p2      = t-fun (substitution'' p1 {!!})
+substitution'' (t-if p1 p3 p4) p2 = t-if (substitution'' p1 p2) (substitution'' p3 p2)
+                                      (substitution'' p4 p2)
 
 -- -----------------------------------------------------------------------------
 -- --------------------------------------------------- SUBJECT REDUCTION THEOREM
 
 -- Γ ⊢ M : T    M ⇒ M'   ⇒   Γ ⊢ M' : T
-type-preservation : {Γ : Env} {m m' : Term} {t : Type}
-                  → HasType Γ m t
+type-preservation : {m m' : Term} {t : Type}
+                  → HasType [] m t
                   → m ⇒ m'
-                  → HasType Γ m' t
+                  → HasType [] m' t
 type-preservation (t-app p1 p3) (e-app1 p2)
   = t-app (type-preservation p1 p2) p3
 type-preservation (t-app p1 p3) (e-app2 p2 p4)
@@ -560,15 +607,14 @@ type-preservation (t-if p1 p2 p3) e-if-true
   = p2
 type-preservation (t-if p1 p2 p3) e-if-false
   = p3
-type-preservation {Γ} (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta {_} {e1} {v2} p)
-  = strengthening Γ t1 [] subst-term (substitution p1 (weakening p3)) zero-notin-fv-subst-term
+type-preservation (t-app {_} {_} {_} {t1} {t2} (t-fun p1) p3) (e-beta {_} {e1} {v2} p)
+  = {!!}
   where
   subst-term : Term
   subst-term = subst zero (shift (succ zero) zero v2) e1
 
   zero-notin-fv-subst-term : ¬ (zero ∈ fv subst-term)
   zero-notin-fv-subst-term = not-in-fv' zero e1 (not-in-fv zero v2)
-
 
 
 -- Evaluation in multiple steps
@@ -585,10 +631,10 @@ infixl 5 _⇒*_
 -- Γ ⊢ M : T    M ⇒* M'   ⇒   Γ ⊢ M' : T
 --
 -- This is type preservation extended to evaluation in multiple steps.
-type-preservation' : {Γ : Env} {m m' : Term} {t : Type}
-                  → HasType Γ m t
+type-preservation' : {m m' : Term} {t : Type}
+                  → HasType [] m t
                   → m ⇒* m'
-                  → HasType Γ m' t
+                  → HasType [] m' t
 type-preservation' p1 (e-refl e1)              = p1
 type-preservation' p1 (e-trans p2 p3) = type-preservation (type-preservation' p1 p2) p3
 
@@ -667,7 +713,7 @@ progress {m} (t-app {Γ} {m1} {m2} {t1} p1 p2) = m-val-or-eval
   m-val-or-eval = case m1-val-or-eval of λ {
     (left m1Val@(v-fun {_} {e1})) → case m2-val-or-eval of λ {
       (left  m2Val) →
-             right (exists (shift-back 1 zero (subst zero (shift 1 zero m2) e1)) (e-beta m2Val));
+             right (exists (subst 0 m2 e1) (e-beta m2Val));
       (right (exists m2' m2Eval)) →
              right (exists (m1 app m2') (e-app2 m1Val m2Eval))
       };
