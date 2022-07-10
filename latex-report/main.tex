@@ -629,8 +629,31 @@ We have to check also constructors for types representing propositions.
 We should all agree on the fact that constructors for a type corresponding to the proposition $P$ encodes all and the only ways to prove that proposition.
 
 
-\subsection{Possible developments}
+\subsection{Possible improvements}
+There are many ways in which this project may be improved and expanded.
 
+\begin{itemize}
+  \item
+  The formalized language may be expanded including new features like exceptions, variants and subtyping.
+  Could be interesting to see how proofs have to be modified when extensions that break the uniqueness-of-typing property are implemented.
+  
+  \item
+  You may be convinced that the definition of beta reduction we used for nameless terms is correct, or you may have some doubts.
+  Indeed, it would be interesting to demonstrate that the beta reduction for nameless terms agree with the usual beta reduction definition.
+  (see \cite[Ex.\ 6.2.8]{pierce})
+  
+  \item
+  This was my first experience in Agda coding; as I went along with the project I leaned new feature of the language and new idiomatic ways of doing the same stuff.
+  So I did refactoring quite often, trying to improve readability, maintainability and elegance of proves.
+  The codebase can still be refined, maybe exploiting the standard library this time.
+  
+  \item
+  Our language is quite simple and does't break the wall of decidability.
+  This means we can prove something stronger than the safety theorem: we can prove that any well typed term is normalizable.
+  Proving this theorem another enjoyable challenge.
+  (see \cite[Ch.\ 12]{pierce})
+  
+\end{itemize}
 
 
 
