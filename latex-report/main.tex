@@ -100,7 +100,7 @@ If you are in hurry and you want just to have a glance of the project, you can s
 
 \section{Formalization}
 
-\subsubsection*{Terms}
+\subsection{Terms}
 
 \begin{minted}{agda}
 data Term : Set where
@@ -181,7 +181,7 @@ $\lambda x.x$ and $\lambda y.y$ are two equivalent ways of representing the iden
 In our language the identity function for boolean values is \texttt{tm5}.
 
 
-\subsection*{Environment}
+\subsection{Environment}
 
 \begin{minted}{agda}
 Env = List {Type}
@@ -207,7 +207,7 @@ This because the type assigned to variable 0 is the type with index 0 of the env
 Observe how any list of types is a well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variables names.
 
 
-\subsection*{Free variables}
+\subsection{Free variables}
 
 With this new way of representing terms comes a new definition for free variables.
 Commonly, the set of free variables of a term is defined as the set of labels for which does not exist an enclosing abstraction introducing the label.
@@ -236,7 +236,7 @@ fv(fun Nat fun Bool
 \end{minted}
 
 
-\subsection*{Typing rules}
+\subsection{Typing rules}
 
 \begin{minted}{agda}
 data HasType : Env → Term → Type → Set where
@@ -308,6 +308,8 @@ Note as in the rule \texttt{T-FUN}, environments are expanded appending a new bi
 {\Gamma \vdash \lambda x:T_1. M : T_1 \to T_2}
 
 \end{mathpar}
+
+\subsubsection{Using typing rules}
 
 Using \texttt{HasType} constructors we can provide evidence that a typing judgement is derivable.
 For example, we can prove the trivial judgement $x : \text{Bool} \vdash x : \text{Bool}$ coding the proof term \texttt{pt1}.
@@ -419,7 +421,7 @@ Hence Agda substitutes \texttt{p1} with the absurd pattern and removes the equal
 More examples, both on well typed terms and not well typed terms can be found in \texttt{./examples.agda}.
 
 
-\subsection*{Reduction rules}
+\subsection{Reduction rules}
 
 \begin{minted}{agda}
 data _⇒_ : Term → Term → Set where
@@ -574,6 +576,63 @@ strengthening = -- ... prove this somehow
 \end{enumerate}
 
 Combining the three lemmas we can prove \ref{type-pres-beta}.
+
+
+\subsubsection{Using reduction rules}
+
+Using \texttt{\_⇒\_} constructors we can provide evidence that a term evaluates in one step to another term.
+For example, we can prove that the term $((\lambda x:\text{Bool}. \; x) \; \text{true})$ evaluates to $(\text{true})$ coding the proof term \texttt{pt3}.
+
+\begin{minted}{agda}
+pt3 : (fun Bool (var 0)) app true
+    ⇒ true
+pt3 = e-beta v-true
+\end{minted}
+
+Adding the definition of multi-step reduction (\texttt{\_⇒*\_}) and of some utility functions, we can also prove in a clean way that a term evaluates to another in a number of steps.
+\texttt{pt4} is a proof term showing that $((\lambda x:\text{Bool}. \; \text{if} \; 0_v \; \text{then} \; 1_n \; \text{else} \; 2_n) \; \text{true})$ evaluates in a number of steps to $(1_n)$. (here I denoted with the subscript ``$n$" natural numbers and with the subscript ``$v$" de Bruijn indices)
+
+\begin{minted}{agda}
+pt4 : fun Bool (if var 0 then num 1 else num 2) app true
+  ⇒* num 1
+pt4 = begin⇒
+  fun Bool (if var 0 then num 1 else num 2) app true  ⇒⟨ e-beta v-true ⟩
+  if true then num 1 else num 2                       ⇒⟨ e-if-true ⟩
+  num 1 ⇒∎
+\end{minted}
+
+\texttt{begin⇒\_}, \texttt{\_⇒⟨\_⟩\_} and \texttt{\_⇒∎} are functions defined taking inspiration from how equality reasoning is done in Agda.
+(here for more details \url{https://plfa.github.io/Equality/#chains-of-equations}).
+
+The proof starts with the \texttt{begin⇒} marker and ends with the \texttt{⇒∎}  marker.
+On each line but the last there is a term on the left and a proof on the right, this latter surrounded by \texttt{⇒⟨ ... ⟩}.
+When we want to prove that (\texttt{M ⇒* M'}), the term on the first line is \texttt{M} while the lonely term in the last line is \texttt{M'}.
+The proof on each line proves that the term on the same line evaluates in one step to the term sitting in the following line.
+The result is a chain of proofs of one-step reduction building up a proof for multi-step reduction.
+
+\section{Conclusions}
+
+I let the reader discover how the final goal of proving the safety theorem is carried out, reading the source code.
+
+One may ask how someone can check if the formalization is correct.
+How can we be sure that we have proved what we actually wanted to prove ?
+
+Agda does type-checking and termination-checking.
+This means that if Agda accepts the definition we give for a function from $P$ to $Q$, we are sure that for any possible value of type $P$ the function can produce a value of type $Q$ in a finite number of steps.
+In the world of propositions this means that we can always produce a proof of $Q$ when we have a proof of $P$, so the function correctly encodes the proposition $P \implies Q$.
+Therefore, if a function \texttt{P → Q} is coded to prove $P \implies Q$, and Agda accepts the function's body, there is no need to check the body; we don't care what is the value of type $Q$ that is produced starting from a value of type $P$, we just care that some $Q$ is produced.
+
+We have to check functions of which we care about the actual output value, as for example the \texttt{\_+\_} function.
+We want \texttt{1 + 1} to return \textit{the} natural number \texttt{2} and not just \textit{some} natural number. 
+
+We have to check also constructors for types representing propositions.
+We should all agree on the fact that constructors for a type corresponding to the proposition $P$ encodes all and the only ways to prove that proposition.
+
+
+\subsection{Possible developments}
+
+
+
 
 \newpage
 \nocite{*}

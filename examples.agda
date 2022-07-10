@@ -7,21 +7,30 @@ open import type-system
 -- -----------------------------------------------------------------------------
 -- -------------------------------------------- EXAMPLES OF EVALUATION JUDGMENTS
 
-{- Prove that
-   (λ x:Bool. x) true ⇒* true
+{- Prova that
+  (λ x:Bool. x) true
+evaluates to "true" in a single step.
 -}
 ev-1 : (fun Bool (var 0)) app true
+  ⇒ true
+ev-1 = e-beta v-true
+
+{- Prove that
+   (λ x:Bool. x) true ⇒* true
+in this proof we use the multi-step evaluation judgement.
+-}
+ev-2 : (fun Bool (var 0)) app true
   ⇒* true
-ev-1 = begin⇒
+ev-2 = begin⇒
   (fun Bool (var 0)) app true ⇒⟨ e-beta v-true ⟩
   true ⇒∎
 
 {- Prove that
    (λ x:Bool. if x then 1 else 2) true ⇒* 1
 -}
-ev-2 : fun Bool (if var 0 then num 1 else num 2) app true
+ev-3 : fun Bool (if var 0 then num 1 else num 2) app true
   ⇒* num 1
-ev-2 = begin⇒
+ev-3 = begin⇒
   fun Bool (if var 0 then num 1 else num 2) app true  ⇒⟨ e-beta v-true ⟩
   if true then num 1 else num 2                       ⇒⟨ e-if-true ⟩
   num 1 ⇒∎
@@ -29,9 +38,9 @@ ev-2 = begin⇒
 {- Prove that
    (λ x:Bool. if x then 1 else 2) false ⇒* 2
 -}
-ev-3 : fun Bool (if var 0 then num 1 else num 2) app false
+ev-4 : fun Bool (if var 0 then num 1 else num 2) app false
   ⇒* num 2
-ev-3 = begin⇒
+ev-4 = begin⇒
   fun Bool (if var 0 then num 1 else num 2) app false  ⇒⟨ e-beta v-false ⟩
   if false then num 1 else num 2                       ⇒⟨ e-if-false ⟩
   num 2 ⇒∎  
@@ -39,9 +48,9 @@ ev-3 = begin⇒
 {- Prove that
    (λ x:Bool. x) (λ x:Bool. x) ⇒* (λ x:Bool. x)
 -}
-ev-4 : (fun Bool (var 0)) app (fun Bool (var 0))
+ev-5 : (fun Bool (var 0)) app (fun Bool (var 0))
     ⇒* fun Bool (var 0)
-ev-4 =  begin⇒
+ev-5 =  begin⇒
   (fun Bool (var 0)) app (fun Bool (var 0))            ⇒⟨ e-beta v-fun ⟩
   fun Bool (var 0) ⇒∎
 
