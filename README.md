@@ -1,4 +1,4 @@
-# mini Agda TySy
+# micro Agda TySy
 The purpose of this project is to formalize a basic functional language with its type system and to prove the well known safety theorem.
 
 The project is divided in multiple files:
