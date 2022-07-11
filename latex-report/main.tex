@@ -15,8 +15,6 @@
     sorting=ynt
 ]{biblatex}
 
-% \newtheorem{lemma}{Lemma}
-
 
 % add "linenos" to enable line numbers
 \setminted[agda]{encoding=utf8}
@@ -72,7 +70,7 @@ The purpose of this project is to formalize in Agda a basic functional language 
 \subsubsection*{Agda}
 Agda is a functional programming language based on Martin-Löf's Type Theory.
 The main feature of the language is dependent types.
-Dependent type are types that can depend (that are parameterized) on values of other types.
+Dependent types are types that can depend (that are parameterized) on values of other types.
 
 In common mainstream programming languages such as Java we have Generics: types that depends on other types.
 As an example, in Java we can define the type \texttt{List<T>} that is a generic type that can be instantiated providing some other type, such as Integer or String, as parameter \texttt{T}.
@@ -94,7 +92,7 @@ All functions that can be defined in Agda are total and computable, that is, eva
 \subsubsection*{Project structure}
 
 The project codebase is divided in multiple files.
-The root directory contains a README.md that provides an overview of files content.
+The root directory contains a \texttt{./README.md} that provides an overview of files content.
 If you are in hurry and you want just to have a glance of the project, you can start from \texttt{./type-system.agda}.
 
 
@@ -117,7 +115,7 @@ data Term : Set where
 One of the first things we have to define are the terms of the language.
 \texttt{Term} is a type (non-dependent) with one constructor for each kind of expression admitted by the language.
 The formalized language is a basic functional language with booleans, natural numbers and the if-then-else construct.
-The same language is treated in \cite{crafa}[Ch.\ 4] and a similar one can be found in \cite[Ch.\ 9]{pierce}.
+The same language is treated in \cite[Ch.\ 4]{crafa} and a similar one can be found in \cite[Ch.\ 9]{pierce}.
 
 The \texttt{Term} type has eight constructors.
 Each constructor encodes a different way to produce a value of type \texttt{Term}.
@@ -141,8 +139,8 @@ This way of representing terms should be mostly familiar to the reader.
 The major difference between the common way of representing terms and this way resides in the representation of variables and lambda abstractions.
 Variables are encoded as natural numbers (not labels) and functions don't carry along a parameter name.
 Inside a function term is only stored the type \texttt{t} of its parameter and the the body \texttt{e1} of the function.
-This way of representing terms was devised by Nicolaas de Brujin \cite[Ch.\ 6]{pierce}.
-Terms in this form are called \textit{nameless terms} or \textit{de Brujin terms}.
+This way of representing terms was devised by Nicolaas de Bruijn \cite[Ch.\ 6]{pierce}.
+Terms in this form are called \textit{nameless terms} or \textit{de Bruijn terms}.
 
 A variable in a nameless term is an index that points to a precise enclosing lambda abstraction.
 The variable with number k stands for ``the variable bound by the k'th enclosing $\lambda$" \cite[Ch.\ 6 p.\ 76]{pierce}.
@@ -150,7 +148,7 @@ The variable with number k stands for ``the variable bound by the k'th enclosing
 For example, the term \texttt{fun Nat (fun Bool (var 0))} has type \texttt{Nat→Bool→Bool} since \texttt{(var 0)} references the boolean parameter introduces by the innermost abstraction.
 \texttt{fun Nat (fun Bool (var 1))} has type \texttt{Nat→Bool→Nat} instead, because \texttt{(var 1)} references the integer parameter introduced by the outermost lambda.
 
-% TODO add an image here showing how de Brujin indices works
+% TODO add an image here showing how de Bruijn indices works
 
 Here is a table showing some examples of named terms and corresponding nameless terms of our language.
 For even more examples I suggest watching exercise $6.1.1$ \cite[p.\ 76]{pierce} whose solution can be found at \cite[p.\ 503]{pierce}.
@@ -161,7 +159,7 @@ For even more examples I suggest watching exercise $6.1.1$ \cite[p.\ 76]{pierce}
  & named term \\
  \hline
  \texttt{tm6} & \texttt{$\lambda$x:Bool.x} \\
- \texttt{tm7} & \texttt{$\lambda$x:Bool $\lambda$y:Nat. if x then y else 0} \\
+ \texttt{tm7} & \texttt{$\lambda$x:Bool. $\lambda$y:Nat. if x then y else 0} \\
  \texttt{tm8} & \texttt{(($\lambda$x:Nat.x) 1) +ₙ (($\lambda$y:Nat.y) 2)} \\
  \hline
  \hline
@@ -176,7 +174,7 @@ For even more examples I suggest watching exercise $6.1.1$ \cite[p.\ 76]{pierce}
 \end{tabular}
 \end{center}
 
-The most interesting property of de Brujin terms is that the representation of a term is unique.
+The most interesting property of de Bruijn terms is that the representation of a term is unique.
 $\lambda x.x$ and $\lambda y.y$ are two equivalent ways of representing the identity function as a named term, while $\lambda.0$ is the only way of representing the same function as a nameless term.
 In our language the identity function for boolean values is \texttt{tm5}.
 
@@ -204,7 +202,7 @@ env3 = Bool ∷ Nat ∷ Tarrow (Tarrow Nat Nat) Bool ∷ []
 As we will see later, the term \texttt{var 0} will be of type \texttt{Bool} in \texttt{env1} while it will be of type \texttt{Nat} in \texttt{env2}.
 This because the type assigned to variable 0 is the type with index 0 of the environment.
 
-Observe how any list of types is a well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variables names.
+Observe how any list of types is a well formed context; there is no need to ask for variable names in the context to be distinct, because there are actually no variable names.
 
 
 \subsection{Free variables}
@@ -215,7 +213,7 @@ A variable is free when there is no abstraction that binds it.
 So the set of free variables of a term represents the smallest set of labels for which a binding must be present in the environment for there to be a possibility that the term is well typed in that environment.
 $\lambda x. x + y$ may be well typed only in an environment that contains a binding at least for the label $y$.
 
-With this notion in mind we can come up with a definition of free variables for de Brujin terms.
+With this notion in mind we can come up with a definition of free variables for de Bruijn terms.
 The list of free variables of a term is the list of indices that must be available in an environment to type that term.
 
 In the term \texttt{var 0}, 0 is a free variable because there is no lambda abstraction to which the variable points.
@@ -281,7 +279,7 @@ The three constructors can be red like this:
 \item The \texttt{t-var} constructor can prove that the term \texttt{(var x)} has type \texttt{t} if you can provide to it as input a proof (\texttt{p}) that x'th elements in the environment is the type \texttt{t}.
 \texttt{getIdx} is simply a function that picks up the element that sits on a given index of a list.
 
-\item The \texttt{t-fun} constrctor is interesting because it let us prove something about an environment \texttt{Γ}, if we are able to produce a proof dealing with a bigger environment \texttt{t1 ∷ Γ}.
+\item The \texttt{t-fun} constrctor is interesting because it lets us prove something about an environment \texttt{Γ}, if we are able to produce a proof dealing with a bigger environment \texttt{t1 ∷ Γ}.
 In particular we can say that the term \texttt{(fun t1 m)} has type \texttt{Tarrow t1 t2} if we are able to produce a proof term showing that in the environment obtained prepending \texttt{t1} to \texttt{Γ}, we can say that the body of the function has type \texttt{t2}.
 
 Note as in the rule \texttt{T-FUN}, environments are expanded appending a new binding on the right while in the constructor \texttt{t-fun} environments are expanded prepending new types on the left; but this is just a matter of syntax.
@@ -378,7 +376,7 @@ fun-foo 0 c1 ()
 
 \texttt{fun-foo} is a valid function whose codomain is \texttt{⊥} and whose domain is patently empty.
 A value of type \texttt{foo1} can only be in the form \texttt{c1}, and this fixes \texttt{n=0}.
-Then there is no constructor that can build a value of type \texttt{(foo2 0)} and the absurd pattern mark this fact.
+Then there is no constructor that can build a value of type \texttt{(foo2 0)} and the absurd pattern marks this fact.
 
 Actually, when you have a function with an empty domain, you can ``produce values" of whatever type you like.
 In the two preceding examples you can replace the rightmost \texttt{⊥} with the type you want, and all still works.
@@ -486,7 +484,7 @@ The beta reduction transformation of a term must preserve the type of the term:
 
 \vspace{1em}
 \noindent
-\textit{If $\Gamma \vdash (\lambda x:T_1.M) \; N : T_2$ is derivable, also $\Gamma \vdash M\{x:=N\} : T_2$ must be derivable.}
+\textit{If $\Gamma \vdash (\lambda x:T_1.M) \; N : T_2$ is derivable, also $\Gamma \vdash M\{x:=N\} : T_2$ is derivable.}
 \vspace{1em}
 
 \noindent
@@ -495,7 +493,7 @@ Beta reduction for nameless terms has to respect the same property:
 
 \begin{stat}
 \label{type-pres-beta}
-\textit{If} \texttt{HasType Γ ((fun T1 M) app N) T2} \textit{is provable, also} \texttt{HasType Γ (beta-red M N) T2} \textit{must be provable.}
+If \textnormal{\texttt{HasType Γ ((fun T1 M) app N) T2}} is provable, also \textnormal{\texttt{HasType Γ (beta-red M N) T2}} is provable.
 \end{stat}
 
 \noindent
@@ -550,7 +548,7 @@ strengthening = -- ... prove this somehow
     \texttt{↑ᵏ} applied to a term \texttt{M} outputs a new term that is \texttt{M} with all its free variables incremented by $k$.
     So the term obtained by increasing all the free variables of \texttt{M} by 1, maintains the same type if we type it in an environment enriched with some new type in head.
     If a free variable of \texttt{M} points to the type with index $i$ in \texttt{Γ}, the same variable in \texttt{(↑¹ M)} points to the type with index $i+1$ in \texttt{Tu ∷ Γ}.
-    Also, if \texttt{T} is the type at index $i$ in gamma, \texttt{T} is at index $i+1$ in \texttt{Tu ∷ Γ}.
+    Also, if \texttt{Ti} is the type at index $i$ in gamma, \texttt{Ti} is at index $i+1$ in \texttt{Tu ∷ Γ}.
     Therefore, every free variable of \texttt{(↑¹ M)} points inside \texttt{Tu ∷ Γ} to the same type the same free variable of \texttt{M} points inside \texttt{Γ}.
     The statement is so justified.
 
@@ -648,9 +646,9 @@ There are many ways in which this project may be improved and expanded.
   The codebase can still be refined, maybe exploiting the standard library this time.
   
   \item
-  Our language is quite simple and does't break the wall of decidability.
-  This means we can prove something stronger than the safety theorem: we can prove that any well typed term is normalizable.
-  Proving this theorem another enjoyable challenge.
+  Our language is quite simple and doesn't break the wall of decidability.
+  This means we can prove something stronger than the safety theorem: we can prove that any closed and well-typed term is normalizable.
+  Proving this theorem can be another enjoyable challenge.
   (see \cite[Ch.\ 12]{pierce})
   
 \end{itemize}
